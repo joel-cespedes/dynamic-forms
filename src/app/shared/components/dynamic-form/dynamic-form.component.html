@@ -1,0 +1,59 @@
+<ng-container *ngIf="form">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    @if (config().title) {
+        <h2 class="mb-4">{{ config().title }}</h2>
+    } @for (section of config().sections; track section.id) { 
+        @if(sectionVisibility()[section.id]) {
+            <div class="form-section mb-4" [id]="section.id">
+            @if (section.title) {
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="section-title mb-0">{{ section.title }}</h3>
+                @if (section.collapsible) {
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    (click)="toggleSectionCollapse(section.id)">
+                {{ collapsedSections().has(section.id) ? "Expandir" : "Colapsar" }}
+                </button>
+                }
+            </div>
+      } @if (!collapsedSections().has(section.id)) { 
+        @for (row of section.rows; track row.id) { 
+            @if (rowVisibility()[row.id]) {
+                <div class="row mb-3" [id]="row.id">
+                    @for (field of row.fields; track field.name) { 
+                        @if(fieldVisibility()[field.name]) {
+                            <app-dynamic-field [config]="field" (fieldChange)="onFieldValueChange($event)" />
+                    } 
+                }
+            </div>
+            }
+        } 
+    }
+    </div>
+    } 
+}
+
+    <div class="form-actions mt-4 d-flex gap-2">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="submitDisabled()">
+        {{ submitButtonText() }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="onCancel()">
+        Cancelar
+      </button>
+      @if (showResetButton()) {
+      <button type="button" class="btn btn-outline-danger" (click)="onReset()">
+        Restablecer
+      </button>
+      }
+    </div>
+  </form>
+</ng-container>
+
+<div *ngIf="!form" class="alert alert-warning">Inicializando formulario...</div>

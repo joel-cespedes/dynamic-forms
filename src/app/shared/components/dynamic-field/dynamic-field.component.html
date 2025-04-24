@@ -1,0 +1,227 @@
+<div [formGroup]="formGroup()">
+    @switch (config().type) {
+    @case ('text') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
+        </label>
+        <input type="text" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('email') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
+        </label>
+        <input type="email" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('number') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <input type="number" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="numberConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            [min]="numberConfig().min ?? null" [max]="numberConfig().max ?? null" [step]="numberConfig().step || 1"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('select') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <select [formControlName]="config().name" class="form-select" [id]="config().name"
+            [ngClass]="config().customClasses || ''" [multiple]="selectConfig().multiple" (change)="onFieldChange()">
+            <option value="">Seleccione...</option>
+
+            <!-- Con grupos de opciones -->
+            @if (selectConfig().optionGroups && selectConfig().optionGroups?.length) {
+            @for (group of selectConfig().optionGroups; track group.label) {
+            <optgroup [label]="group.label">
+                @for (option of group.options; track option.value) {
+                <option [value]="option.value" [disabled]="option.disabled">
+                    {{option.label}}
+                </option>
+                }
+            </optgroup>
+            }
+            }
+            <!-- Sin grupos de opciones -->
+            @else {
+            @for (option of selectConfig().options; track option.value) {
+            <option [value]="option.value" [disabled]="option.disabled">
+                {{option.label}}
+            </option>
+            }
+            }
+        </select>
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('checkbox') {
+    <div class="form-check mt-4">
+        <input type="checkbox" [formControlName]="config().name" class="form-check-input" [id]="config().name"
+            [ngClass]="config().customClasses || ''" (change)="onFieldChange()">
+        <label class="form-check-label" [for]="config().name">
+            {{checkboxConfig().checkboxLabel || config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted d-block">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('date') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <input type="date" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [ngClass]="config().customClasses || ''" [min]="dateConfig().min" [max]="dateConfig().max"
+            (change)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('textarea') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <textarea [formControlName]="config().name" class="form-control" [id]="config().name"
+            [rows]="textareaConfig().rows || 3" [placeholder]="textareaConfig().placeholder || ''"
+            [ngClass]="config().customClasses || ''" [maxlength]="textareaConfig().maxLength ?? null"
+            (input)="onFieldChange()"></textarea>
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('radio') {
+    <div class="form-group">
+        <label class="d-block">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+
+        <div class="radio-group" [ngClass]="{'radio-horizontal': radioConfig().layout === 'horizontal'}">
+            @for (option of radioConfig().options; track option.value) {
+            <div class="form-check">
+                <input type="radio" [formControlName]="config().name" class="form-check-input"
+                    [id]="config().name + '_' + option.value" [value]="option.value" [disabled]="!!option.disabled"
+                    (change)="onFieldChange()">
+                <label class="form-check-label" [for]="config().name + '_' + option.value">
+                    {{option.label}}
+                </label>
+            </div>
+            }
+        </div>
+
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('password') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <input type="password" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @default {
+    <div class="alert alert-warning">
+        Tipo de campo '{{config().type}}' no soportado
+    </div>
+    }
+    }
+</div>

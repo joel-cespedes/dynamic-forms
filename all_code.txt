@@ -1,0 +1,3152 @@
+---- src/index.html ----
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Forms</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
+
+---- src/app/app.component.html ----
+<!-- src/app/app.component.html -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">Sistema de Gestión</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/employees" routerLinkActive="active">Empleados</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/stores" routerLinkActive="active">Tiendas</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<router-outlet></router-outlet>
+---- src/app/app.component.scss ----
+
+---- src/app/app.routes.ts ----
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+    {
+        path: 'employees',
+        loadComponent: () => import('./features/employees/employee-page.component')
+            .then(m => m.EmployeePageComponent)
+    },
+    {
+        path: 'stores',
+        loadComponent: () => import('./features/stores/stores-page.component')
+            .then(m => m.StoresPageComponent)
+    },
+    { path: '', redirectTo: '/employees', pathMatch: 'full' },
+    { path: '**', redirectTo: '/employees' }
+];
+---- src/app/app.component.spec.ts ----
+import { TestBed } from '@angular/core/testing';
+import { AppComponent } from './app.component';
+
+describe('AppComponent', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AppComponent],
+    }).compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
+
+  it(`should have the 'forms' title`, () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    expect(app.title).toEqual('forms');
+  });
+
+  it('should render title', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, forms');
+  });
+});
+
+---- src/app/features/stores/stores-page.component.scss ----
+
+---- src/app/features/stores/models/store-form.config.ts ----
+// src/app/features/stores/form-configs/store-form.config.ts
+import { PageFormConfig } from "../../../shared/models/form.models";
+
+export const STORE_FORM_CONFIG: PageFormConfig = {
+    id: 'storeForm',
+    title: 'Información de Tienda',
+    maxColumns: 12,
+    sections: [
+        {
+            id: 'basicInfo',
+            title: 'Información Básica',
+            collapsible: true,
+            rows: [
+                {
+                    id: 'row1',
+                    fields: [
+                        {
+                            name: 'name',
+                            type: 'text',
+                            label: 'Nombre de la Tienda',
+                            required: true,
+                            colSpan: 6,
+                            placeholder: 'Ingrese nombre de la tienda',
+                            validators: [
+                                { type: 'minLength', value: 3, message: 'El nombre debe tener al menos 3 caracteres' },
+                                { type: 'maxLength', value: 100 }
+                            ]
+                        },
+                        {
+                            name: 'storeType',
+                            type: 'select',
+                            label: 'Tipo de Tienda',
+                            required: true,
+                            colSpan: 6,
+                            options: [
+                                { value: 'physical', label: 'Física' },
+                                { value: 'online', label: 'En línea' },
+                                { value: 'hybrid', label: 'Híbrida' }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'row2',
+                    fields: [
+                        {
+                            name: 'description',
+                            type: 'textarea',
+                            label: 'Descripción',
+                            required: true,
+                            colSpan: 12,
+                            placeholder: 'Describa su tienda...',
+                            rows: 3,
+                            validators: [
+                                { type: 'maxLength', value: 500 }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'row3',
+                    fields: [
+                        {
+                            name: 'foundedDate',
+                            type: 'date',
+                            label: 'Fecha de Fundación',
+                            required: true,
+                            colSpan: 6
+                        },
+                        {
+                            name: 'active',
+                            type: 'checkbox',
+                            label: 'Estado',
+                            checkboxLabel: 'Tienda Activa',
+                            required: false,
+                            colSpan: 6,
+                            defaultValue: true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'physicalDetails',
+            title: 'Detalles de Tienda Física',
+            collapsible: true,
+            // Esta sección solo se muestra para tiendas físicas y híbridas
+            visibleWhen: [
+                {
+                    sourceField: 'storeType',
+                    operator: 'in',
+                    value: ['physical', 'hybrid']
+                }
+            ],
+            rows: [
+                {
+                    id: 'row4',
+                    fields: [
+                        {
+                            name: 'address',
+                            type: 'text',
+                            label: 'Dirección',
+                            required: true,
+                            colSpan: 12
+                        }
+                    ]
+                },
+                {
+                    id: 'row5',
+                    fields: [
+                        {
+                            name: 'city',
+                            type: 'text',
+                            label: 'Ciudad',
+                            required: true,
+                            colSpan: 4
+                        },
+                        {
+                            name: 'postalCode',
+                            type: 'text',
+                            label: 'Código Postal',
+                            required: true,
+                            colSpan: 4
+                        },
+                        {
+                            name: 'country',
+                            type: 'text',
+                            label: 'País',
+                            required: true,
+                            colSpan: 4
+                        }
+                    ]
+                },
+                {
+                    id: 'row6',
+                    fields: [
+                        {
+                            name: 'size',
+                            type: 'number',
+                            label: 'Tamaño (m²)',
+                            required: true,
+                            colSpan: 6,
+                            min: 1
+                        },
+                        {
+                            name: 'employeeCount',
+                            type: 'number',
+                            label: 'Número de Empleados',
+                            required: true,
+                            colSpan: 6,
+                            min: 1
+                        }
+                    ]
+                },
+                {
+                    id: 'row7',
+                    fields: [
+                        {
+                            name: 'businessHours',
+                            type: 'select',
+                            label: 'Horario Comercial',
+                            required: true,
+                            colSpan: 6,
+                            options: [
+                                { value: 'standard', label: 'Estándar (9-18h)' },
+                                { value: 'extended', label: 'Extendido (9-22h)' },
+                                { value: '24h', label: '24 horas' }
+                            ]
+                        },
+                        {
+                            name: 'hasParking',
+                            type: 'checkbox',
+                            label: 'Estacionamiento',
+                            checkboxLabel: 'Dispone de estacionamiento',
+                            required: false,
+                            colSpan: 6
+                        }
+                    ]
+                },
+                {
+                    id: 'row8',
+                    fields: [
+                        {
+                            name: 'parkingCapacity',
+                            type: 'number',
+                            label: 'Capacidad de Estacionamiento',
+                            required: true,
+                            colSpan: 12,
+                            min: 1,
+                            // Solo visible si tiene estacionamiento
+                            visibleWhen: [
+                                {
+                                    sourceField: 'hasParking',
+                                    operator: 'equals',
+                                    value: true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'onlineDetails',
+            title: 'Detalles de Tienda En Línea',
+            collapsible: true,
+            // Solo visible para tiendas online y híbridas
+            visibleWhen: [
+                {
+                    sourceField: 'storeType',
+                    operator: 'in',
+                    value: ['online', 'hybrid']
+                }
+            ],
+            rows: [
+                {
+                    id: 'row9',
+                    fields: [
+                        {
+                            name: 'website',
+                            type: 'text',
+                            label: 'Sitio Web',
+                            required: true,
+                            colSpan: 6,
+                            validators: [
+                                {
+                                    type: 'pattern',
+                                    value: '^(https?:\\/\\/)?(www\\.)?[a-zA-Z0-9][a-zA-Z0-9-]+(\\.[a-zA-Z0-9][a-zA-Z0-9-]+)+([/?#].*)?$',
+                                    message: 'Ingrese una URL válida'
+                                }
+                            ]
+                        },
+                        {
+                            name: 'platformType',
+                            type: 'select',
+                            label: 'Tipo de Plataforma',
+                            required: true,
+                            colSpan: 6,
+                            options: [
+                                { value: 'custom', label: 'Personalizada' },
+                                { value: 'shopify', label: 'Shopify' },
+                                { value: 'woocommerce', label: 'WooCommerce' },
+                                { value: 'magento', label: 'Magento' },
+                                { value: 'prestashop', label: 'PrestaShop' },
+                                { value: 'other', label: 'Otra' }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'row10',
+                    fields: [
+                        {
+                            name: 'deliveryTime',
+                            type: 'number',
+                            label: 'Tiempo de Entrega (días)',
+                            required: true,
+                            colSpan: 6,
+                            min: 1
+                        },
+                        {
+                            name: 'shipsInternational',
+                            type: 'checkbox',
+                            label: 'Envíos Internacionales',
+                            checkboxLabel: 'Realiza envíos internacionales',
+                            required: false,
+                            colSpan: 6
+                        }
+                    ]
+                },
+                {
+                    id: 'row11',
+                    fields: [
+                        {
+                            name: 'supportEmail',
+                            type: 'email',
+                            label: 'Email de Soporte',
+                            required: true,
+                            colSpan: 6,
+                            validators: [
+                                { type: 'email' }
+                            ]
+                        },
+                        {
+                            name: 'supportPhone',
+                            type: 'text',
+                            label: 'Teléfono de Soporte',
+                            required: false,
+                            colSpan: 6
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'paymentMethods',
+            title: 'Métodos de Pago',
+            collapsible: true,
+            rows: [
+                {
+                    id: 'row12',
+                    fields: [
+                        {
+                            name: 'paymentMethods',
+                            type: 'select',
+                            label: 'Métodos de Pago Aceptados',
+                            required: true,
+                            colSpan: 12,
+                            multiple: true,
+                            options: [
+                                { value: 'cash', label: 'Efectivo' },
+                                { value: 'card', label: 'Tarjeta de Crédito/Débito' },
+                                { value: 'bank', label: 'Transferencia Bancaria' },
+                                { value: 'mobile', label: 'Pago Móvil' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    tableConfig: {
+        columns: [
+            { field: 'name', header: 'Nombre', sortable: true },
+            { field: 'storeType', header: 'Tipo' },
+            { field: 'foundedDate', header: 'Fecha Fundación', format: 'date' },
+            { field: 'active', header: 'Activa', format: 'boolean' }
+        ],
+        actions: [
+            {
+                label: 'Editar',
+                icon: 'pencil',
+                action: 'edit',
+                color: 'primary'
+            },
+            {
+                label: 'Eliminar',
+                icon: 'trash',
+                action: 'delete',
+                color: 'danger',
+                confirmMessage: '¿Está seguro de que desea eliminar esta tienda?'
+            }
+        ],
+        paginationSize: 10
+    },
+    apiEndpoints: {
+        get: '/api/stores',
+        save: '/api/stores',
+        search: '/api/stores/search',
+        delete: '/api/stores'
+    }
+};
+---- src/app/features/stores/models/store.model.ts ----
+// src/app/features/stores/models/store.model.ts
+export type StoreType = 'physical' | 'online' | 'hybrid';
+export type PaymentMethod = 'cash' | 'card' | 'bank' | 'mobile';
+export type BusinessHours = 'standard' | 'extended' | '24h';
+
+// Interfaz base para tienda
+export interface Store {
+    id?: string;
+    name: string;
+    description: string;
+    storeType: StoreType;
+    foundedDate: string;
+    active: boolean;
+}
+
+// Propiedades específicas para tienda física
+export interface PhysicalStoreProps {
+    address: string;
+    city: string;
+    postalCode: string;
+    country: string;
+    size: number; // en m²
+    businessHours: BusinessHours;
+    employeeCount: number;
+    hasParking: boolean;
+    parkingCapacity?: number;
+}
+
+// Propiedades específicas para tienda online
+export interface OnlineStoreProps {
+    website: string;
+    platformType: string;
+    deliveryTime: number;
+    shipsInternational: boolean;
+    supportEmail: string;
+    supportPhone?: string;
+}
+
+// Interfaces específicas para cada tipo de tienda
+export interface PhysicalStore extends Store, PhysicalStoreProps {
+    storeType: 'physical';
+}
+
+export interface OnlineStore extends Store, OnlineStoreProps {
+    storeType: 'online';
+}
+
+export interface HybridStore extends Store, PhysicalStoreProps, OnlineStoreProps {
+    storeType: 'hybrid';
+}
+
+// Tipo para formulario de tienda (se mantiene igual)
+export interface StoreFormModel {
+    // Campos comunes
+    id?: string;
+    name: string;
+    description: string;
+    storeType: StoreType;
+    foundedDate: string;
+    active: boolean;
+
+    // Campos para tiendas físicas y híbridas
+    address?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+    size?: number;
+    businessHours?: BusinessHours;
+    employeeCount?: number;
+    hasParking?: boolean;
+    parkingCapacity?: number;
+
+    // Campos para tiendas online y híbridas
+    website?: string;
+    platformType?: string;
+    deliveryTime?: number;
+    shipsInternational?: boolean;
+    supportEmail?: string;
+    supportPhone?: string;
+
+    // Métodos de pago aceptados (para todos los tipos)
+    paymentMethods?: PaymentMethod[];
+}
+---- src/app/features/stores/stores-page.component.html ----
+<div class="container-fluid py-4">
+     <div class="row">
+        <!-- Área de formulario -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    @if (formConfig()) {
+                    <app-dynamic-form [config]="formConfig()!" 
+                        [initialData]="selectedStore()"
+                        (formSubmit)="onFormSubmit($event)" 
+                        (formCancel)="onFormCancel()"
+                        (fieldChange)="onFieldChange($event)" 
+                        [(formValid)]="isFormValid" />
+                    } @else {
+                    <div class="alert alert-warning">
+                        No se encontró la configuración del formulario
+                    </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de tabla -->
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Tiendas</h5>
+
+                    @if (formConfig()?.tableConfig) {
+                    <app-dynamic-table [config]="formConfig()!.tableConfig!" [dataUrl]="tableDataUrl()"
+                        [filters]="tableFilters()" (rowAction)="onTableAction($event)" />
+                    } @else {
+                    <div class="alert alert-info">
+                        No se encontró la configuración de la tabla
+                    </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+---- src/app/features/stores/stores-page.component.ts ----
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormRegistryService } from '../../shared/services/form-registry.service';
+import { FormDataService } from '../../shared/services/form-data.service';
+import { DynamicTableComponent } from '../../shared/components/dynamic-table/dynamic-table.component';
+import { DynamicFormComponent } from '../../shared/components/dynamic-form/dynamic-form.component';
+
+@Component({
+  selector: 'app-stores-page',
+  imports: [DynamicTableComponent, DynamicFormComponent],
+  templateUrl: './stores-page.component.html',
+  styleUrl: './stores-page.component.scss'
+})
+export class StoresPageComponent {
+
+  private formRegistry = inject(FormRegistryService);
+  private dataService = inject(FormDataService);
+
+
+  formId = signal('storeForm');
+
+  selectedStore = signal<Record<string, unknown> | null>(null);
+  isFormValid = signal(false);
+  private _tableFilters = signal<Record<string, unknown>>({});
+  tableFilters = computed(() => this._tableFilters());
+
+  // Configuración del formulario actual
+  formConfig = computed(() => {
+    return this.formRegistry.getFormConfig(this.formId());
+  });
+
+  // URL para datos de la tabla
+  tableDataUrl = computed(() => {
+    const config = this.formConfig();
+    return config?.apiEndpoints?.search || '/api/stores';
+  });
+
+  constructor() {
+    console.log('StorePageComponent inicializado');
+
+    // Cargar datos manualmente al inicializar
+    setTimeout(() => {
+      const url = this.tableDataUrl();
+      console.log('URL para cargar datos:', url);
+
+      if (url) {
+        this.dataService.searchTableData(url, {}).subscribe({
+          next: (response) => {
+            console.log('Datos cargados manualmente:', response);
+          },
+          error: (error) => {
+            console.error('Error al cargar datos manualmente:', error);
+          }
+        });
+      }
+    }, 1000);
+  }
+
+  // Manejar envío del formulario
+  onFormSubmit(formData: Record<string, unknown>): void {
+    console.log('Formulario enviado:', formData);
+
+    // Guardar en estado o enviar a API
+    const endpoint = this.formConfig()?.apiEndpoints?.save;
+    if (endpoint) {
+      this.dataService.saveFormData(endpoint, formData).subscribe({
+        next: (response) => {
+          console.log('Datos guardados:', response);
+          // Actualizar filtros de tabla para recargar datos
+          this._tableFilters.update(filters => ({ ...filters, _timestamp: Date.now() }));
+          this.selectedStore.set(null);
+        },
+        error: (error) => {
+          console.error('Error al guardar:', error);
+        }
+      });
+    }
+  }
+
+  // Manejar cancelación del formulario
+  onFormCancel(): void {
+    console.log('Formulario cancelado');
+    this.selectedStore.set(null);
+  }
+
+  // Manejar cambio en campos del formulario
+  onFieldChange(event: { field: string, value: unknown }): void {
+    console.log('Campo cambiado:', event);
+  }
+
+  // Manejar acción de tabla
+  onTableAction(event: { action: string, item: unknown }): void {
+    switch (event.action) {
+      case 'edit':
+        this.selectedStore.set(event.item as Record<string, unknown>);
+        break;
+      case 'delete':
+        if (confirm('¿Está seguro de eliminar esta tienda?')) {
+          const endpoint = this.formConfig()?.apiEndpoints?.delete;
+          const item = event.item as Record<string, unknown>;
+          if (endpoint && item['id']) {
+            this.dataService.deleteRecord(endpoint, String(item['id'])).subscribe({
+              next: () => {
+                // Recargar tabla
+                this._tableFilters.update(filters => ({ ...filters, _timestamp: Date.now() }));
+              }
+            });
+          }
+        }
+        break;
+    }
+  }
+}
+
+---- src/app/features/employees/employee-page.component.html ----
+<div class="container-fluid py-4">
+    <h1 class="mb-4">{{ pageTitle() }}</h1>
+
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    @if (formConfig()) {
+                    <app-dynamic-form
+                        [config]="formConfig()!"
+                        [initialData]="selectedEmployee()"
+                        (formSubmit)="onFormSubmit($event)"
+                        (formCancel)="onFormCancel()"
+                        (fieldChange)="onFieldChange($event)"
+                        [(formValid)]="isFormValid"/>
+                        } @else {
+                        <div class="alert alert-warning">
+                            No se encontró la configuración del formulario
+                        </div>
+                        }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Empleados</h5>
+
+                    @if (formConfig()?.tableConfig) {
+                    <app-dynamic-table                        
+                        [config]="formConfig()!.tableConfig!"
+                        [dataUrl]="tableDataUrl()"
+                        [filters]="tableFilters()"
+                        (rowAction)="onTableAction($event)"
+                        />
+                        } @else {
+                        <div class="alert alert-info">
+                            No se encontró la configuración de la tabla
+                        </div>
+                        }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="container mt-5">
+        <h1>Prueba de Empleados</h1>
+        <div class="alert alert-info">
+            Esta es una página de prueba
+        </div>
+    </div>
+---- src/app/features/employees/employee-page.component.scss ----
+
+---- src/app/features/employees/employee-page.component.ts ----
+import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed } from '@angular/core';
+import { FormRegistryService } from '../../shared/services/form-registry.service';
+import { FormDataService } from '../../shared/services/form-data.service';
+import { DynamicTableComponent } from '../../shared/components/dynamic-table/dynamic-table.component';
+import { DynamicFormComponent } from '../../shared/components/dynamic-form/dynamic-form.component';
+
+@Component({
+  selector: 'app-employee-page',
+  imports: [CommonModule, DynamicTableComponent, DynamicFormComponent],
+  templateUrl: './employee-page.component.html',
+  styleUrl: './employee-page.component.scss'
+})
+export class EmployeePageComponent {
+
+  // Servicios
+  private formRegistry = inject(FormRegistryService);
+  private dataService = inject(FormDataService);
+
+  // Estado como signals
+  pageTitle = signal('Gestión de Empleados');
+  formId = signal('employeeForm');
+  selectedEmployee = signal<Record<string, unknown> | null>(null);
+  isFormValid = signal(false);
+  private _tableFilters = signal<Record<string, unknown>>({});
+  tableFilters = computed(() => this._tableFilters());
+
+  // Configuración del formulario actual
+  formConfig = computed(() => {
+    return this.formRegistry.getFormConfig(this.formId());
+  });
+
+  // URL para datos de la tabla
+  tableDataUrl = computed(() => {
+    const config = this.formConfig();
+    return config?.apiEndpoints?.search || '/api/employees';
+  });
+
+
+  ngOnInit() {
+    const url = this.tableDataUrl();
+    console.log('URL para cargar datos:', url);
+
+    if (url) {
+      this.dataService.searchTableData(url, {}).subscribe({
+        next: (response) => {
+          console.log('Datos cargados manualmente:', response);
+        },
+        error: (error) => {
+          console.error('Error al cargar datos manualmente:', error);
+        }
+      });
+    }
+  }
+
+
+  constructor() {
+    console.log('EmployeePageComponent inicializado');
+
+    // Cargar datos manualmente al inicializar
+    setTimeout(() => {
+      // Aseguramos que tableDataUrl() se evalúe después de que los componentes estén inicializados
+      const url = this.tableDataUrl();
+      console.log('URL para cargar datos:', url);
+
+      if (url) {
+        this.dataService.searchTableData(url, {}).subscribe({
+          next: (response) => {
+            console.log('Datos cargados manualmente:', response);
+          },
+          error: (error) => {
+            console.error('Error al cargar datos manualmente:', error);
+          }
+        });
+      }
+    }, 1000);  // Esperar 1 segundo para asegurar que todo esté inicializado
+  }
+
+
+
+  // Manejar envío del formulario
+  onFormSubmit(formData: Record<string, unknown>): void {
+    console.log('Formulario enviado:', formData);
+
+    // Guardar en estado o enviar a API
+    const endpoint = this.formConfig()?.apiEndpoints?.save;
+    if (endpoint) {
+      this.dataService.saveFormData(endpoint, formData).subscribe({
+        next: (response) => {
+          console.log('Datos guardados:', response);
+          // Actualizar filtros de tabla para recargar datos
+          this._tableFilters.update(filters => ({ ...filters, _timestamp: Date.now() }));
+          this.selectedEmployee.set(null);
+        },
+        error: (error) => {
+          console.error('Error al guardar:', error);
+        }
+      });
+    }
+  }
+
+  // Manejar cancelación del formulario
+  onFormCancel(): void {
+    console.log('Formulario cancelado');
+    this.selectedEmployee.set(null);
+  }
+
+  // Manejar cambio en campos del formulario
+  onFieldChange(event: { field: string, value: unknown }): void {
+    console.log('Campo cambiado:', event);
+  }
+
+  // Manejar acción de tabla
+  onTableAction(event: { action: string, item: unknown }): void {
+    switch (event.action) {
+      case 'edit':
+        this.selectedEmployee.set(event.item as Record<string, unknown>);
+        break;
+      case 'delete':
+        if (confirm('¿Está seguro de eliminar este empleado?')) {
+          const endpoint = this.formConfig()?.apiEndpoints?.delete;
+          const item = event.item as Record<string, unknown>;
+          if (endpoint && item['id']) {
+            this.dataService.deleteRecord(endpoint, String(item['id'])).subscribe({
+              next: () => {
+                // Recargar tabla
+                this._tableFilters.update(filters => ({ ...filters, _timestamp: Date.now() }));
+              }
+            });
+          }
+        }
+        break;
+    }
+  }
+}
+
+---- src/app/features/employees/models/employee.model.ts ----
+
+export type EmployeeType = 'fullTime' | 'partTime' | 'contractor';
+export type Department = 'it' | 'hr' | 'finance' | 'marketing' | 'operations';
+export type BenefitType = 'health' | 'retirement' | 'both' | null;
+
+// Interfaz base para empleado
+export interface Employee {
+    id?: string;
+    firstName: string;
+    lastName: string;
+    employeeType: EmployeeType;
+    department: Department;
+    hireDate: string;
+}
+
+// Interfaces específicas para cada tipo de empleado
+export interface FullTimeEmployee extends Employee {
+    employeeType: 'fullTime';
+    salary: number;
+    hasBenefits: boolean;
+    benefitType?: BenefitType;
+    benefitAmount?: number;
+}
+
+export interface PartTimeEmployee extends Employee {
+    employeeType: 'partTime';
+    salary: number;
+    hoursPerWeek: number;
+    hasBenefits: boolean;
+    benefitType?: BenefitType;
+    benefitAmount?: number;
+}
+
+export interface ContractorEmployee extends Employee {
+    employeeType: 'contractor';
+    contractStartDate: string;
+    contractEndDate: string;
+    hourlyRate: number;
+    estimatedHours: number;
+    company?: string;
+    contractNotes?: string;
+}
+
+// Unión de todos los tipos de empleados
+export type EmployeeModel = FullTimeEmployee | PartTimeEmployee | ContractorEmployee;
+
+// Tipo para formulario de empleado
+export interface EmployeeFormModel {
+    // Campos comunes
+    id?: string;
+    firstName: string;
+    lastName: string;
+    employeeType: EmployeeType;
+    department: Department;
+    hireDate: string;
+
+    // Campos para full-time y part-time
+    salary?: number;
+    hoursPerWeek?: number;
+    hasBenefits?: boolean;
+    benefitType?: BenefitType;
+    benefitAmount?: number;
+
+    // Campos para contratistas
+    contractStartDate?: string;
+    contractEndDate?: string;
+    hourlyRate?: number;
+    estimatedHours?: number;
+    company?: string;
+    contractNotes?: string;
+}
+---- src/app/features/employees/models/employee-form.config.ts ----
+import { PageFormConfig } from "../../../shared/models/form.models";
+
+export const EMPLOYEE_FORM_CONFIG: PageFormConfig = {
+    id: 'employeeForm',
+    title: 'Información de Empleado',
+    maxColumns: 12,
+    sections: [
+        {
+            id: 'personalInfo',
+            title: 'Información Personal',
+            collapsible: true,
+            rows: [
+                {
+                    id: 'row1',
+                    fields: [
+                        {
+                            name: 'firstName',
+                            type: 'text',
+                            label: 'Nombre',
+                            required: true,
+                            colSpan: 6,
+                            placeholder: 'Ingrese nombre',
+                            validators: [
+                                { type: 'minLength', value: 2, message: 'El nombre debe tener al menos 2 caracteres' },
+                                { type: 'maxLength', value: 50 }
+                            ]
+                        },
+                        {
+                            name: 'lastName',
+                            type: 'text',
+                            label: 'Apellido',
+                            required: true,
+                            colSpan: 6,
+                            placeholder: 'Ingrese apellido',
+                            validators: [
+                                { type: 'minLength', value: 2 },
+                                { type: 'maxLength', value: 50 }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'row2',
+                    fields: [
+                        {
+                            name: 'employeeType',
+                            type: 'select',
+                            label: 'Tipo de Empleado',
+                            required: true,
+                            colSpan: 4,
+                            options: [
+                                { value: 'fullTime', label: 'Tiempo Completo' },
+                                { value: 'partTime', label: 'Tiempo Parcial' },
+                                { value: 'contractor', label: 'Contratista' }
+                            ]
+                        },
+                        {
+                            name: 'department',
+                            type: 'select',
+                            label: 'Departamento',
+                            required: true,
+                            colSpan: 4,
+                            options: [
+                                { value: 'it', label: 'IT' },
+                                { value: 'hr', label: 'Recursos Humanos' },
+                                { value: 'finance', label: 'Finanzas' },
+                                { value: 'marketing', label: 'Marketing' },
+                                { value: 'operations', label: 'Operaciones' }
+                            ]
+                        },
+                        {
+                            name: 'hireDate',
+                            type: 'date',
+                            label: 'Fecha de Contratación',
+                            required: true,
+                            colSpan: 4
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'contractDetails',
+            title: 'Detalles de Contrato',
+            collapsible: true,
+            // Esta sección solo se muestra para empleados de tiempo completo y parcial
+            visibleWhen: [
+                {
+                    sourceField: 'employeeType',
+                    operator: 'in',
+                    value: ['fullTime', 'partTime']
+                }
+            ],
+            rows: [
+                {
+                    id: 'row3',
+                    fields: [
+                        {
+                            name: 'salary',
+                            type: 'number',
+                            label: 'Salario Anual',
+                            required: true,
+                            colSpan: 6,
+                            hint: 'Salario anual bruto',
+                            min: 0,
+                            step: 100
+                        },
+                        {
+                            name: 'hoursPerWeek',
+                            type: 'number',
+                            label: 'Horas Semanales',
+                            required: true,
+                            colSpan: 6,
+                            min: 1,
+                            max: 40,
+                            // Solo visible para empleados de tiempo parcial
+                            visibleWhen: [
+                                {
+                                    sourceField: 'employeeType',
+                                    operator: 'equals',
+                                    value: 'partTime'
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'row4',
+                    fields: [
+                        {
+                            name: 'hasBenefits',
+                            type: 'checkbox',
+                            label: 'Beneficios',
+                            checkboxLabel: 'Incluye paquete de beneficios',
+                            required: false,
+                            colSpan: 12
+                        }
+                    ]
+                },
+                {
+                    id: 'row5',
+                    // Esta fila se muestra solo si tiene beneficios
+                    visibleWhen: [
+                        {
+                            sourceField: 'hasBenefits',
+                            operator: 'equals',
+                            value: true
+                        }
+                    ],
+                    fields: [
+                        {
+                            name: 'benefitType',
+                            type: 'radio',
+                            label: 'Tipo de Beneficio',
+                            required: true,
+                            colSpan: 6,
+                            layout: 'vertical',
+                            options: [
+                                { value: 'health', label: 'Seguro de Salud' },
+                                { value: 'retirement', label: 'Plan de Jubilación' },
+                                { value: 'both', label: 'Ambos' }
+                            ]
+                        },
+                        {
+                            name: 'benefitAmount',
+                            type: 'number',
+                            label: 'Monto del Beneficio',
+                            required: true,
+                            colSpan: 6,
+                            min: 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'contractorDetails',
+            title: 'Detalles de Contratista',
+            collapsible: true,
+            // Solo visible para contratistas
+            visibleWhen: [
+                {
+                    sourceField: 'employeeType',
+                    operator: 'equals',
+                    value: 'contractor'
+                }
+            ],
+            rows: [
+                {
+                    id: 'row6',
+                    fields: [
+                        {
+                            name: 'contractStartDate',
+                            type: 'date',
+                            label: 'Fecha de Inicio',
+                            required: true,
+                            colSpan: 6
+                        },
+                        {
+                            name: 'contractEndDate',
+                            type: 'date',
+                            label: 'Fecha de Finalización',
+                            required: true,
+                            colSpan: 6
+                        }
+                    ]
+                },
+                {
+                    id: 'row7',
+                    fields: [
+                        {
+                            name: 'hourlyRate',
+                            type: 'number',
+                            label: 'Tarifa por Hora',
+                            required: true,
+                            colSpan: 4,
+                            min: 0,
+                            step: 0.5
+                        },
+                        {
+                            name: 'estimatedHours',
+                            type: 'number',
+                            label: 'Horas Estimadas',
+                            required: true,
+                            colSpan: 4,
+                            min: 1
+                        },
+                        {
+                            name: 'company',
+                            type: 'text',
+                            label: 'Empresa',
+                            required: false,
+                            colSpan: 4
+                        }
+                    ]
+                },
+                {
+                    id: 'row8',
+                    fields: [
+                        {
+                            name: 'contractNotes',
+                            type: 'textarea',
+                            label: 'Notas del Contrato',
+                            required: false,
+                            colSpan: 12,
+                            rows: 4,
+                            placeholder: 'Información adicional sobre el contrato...',
+                            maxLength: 500
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    tableConfig: {
+        columns: [
+            { field: 'firstName', header: 'Nombre', sortable: true },
+            { field: 'lastName', header: 'Apellido', sortable: true },
+            { field: 'employeeType', header: 'Tipo' },
+            { field: 'department', header: 'Departamento' },
+            { field: 'hireDate', header: 'Fecha Contratación', format: 'date' }
+        ],
+        actions: [
+            {
+                label: 'Editar',
+                icon: 'pencil',
+                action: 'edit',
+                color: 'primary'
+            },
+            {
+                label: 'Eliminar',
+                icon: 'trash',
+                action: 'delete',
+                color: 'danger',
+                confirmMessage: '¿Está seguro de que desea eliminar este empleado?'
+            }
+        ],
+        paginationSize: 10
+    },
+    apiEndpoints: {
+        get: '/api/employees',
+        save: '/api/employees',
+        search: '/api/employees/search',
+        delete: '/api/employees'
+    }
+};
+---- src/app/shared/models/form.models.ts ----
+export type ValidationTypes = 'required' | 'email' | 'minLength' | 'maxLength' | 'min' | 'max' | 'pattern';
+export type ConditionOperator = 'equals' | 'notEquals' | 'contains' | 'in' | 'greaterThan' | 'lessThan' | 'isEmpty' | 'isNotEmpty';
+export type ConditionEffect = 'show' | 'hide' | 'enable' | 'disable' | 'require' | 'setOptions' | 'setValue';
+export type FieldType = 'text' | 'number' | 'select' | 'checkbox' | 'date' | 'textarea' | 'email' | 'password' | 'radio';
+
+// Definición de condiciones para comportamiento dinámico
+export interface DisplayCondition {
+    sourceField: string;
+    operator: ConditionOperator;
+    value?: unknown;
+    effect?: ConditionEffect;
+}
+
+// Validador para campos
+export interface FieldValidator {
+    type: ValidationTypes;
+    value?: unknown;
+    message?: string;
+}
+
+// Configuración base para todos los campos
+export interface BaseFieldConfig {
+    name: string;
+    type: FieldType;
+    label: string;
+    required: boolean;
+    defaultValue?: unknown;
+    colSpan: number;
+    visibleWhen?: DisplayCondition[];
+    placeholder?: string;
+    hint?: string;
+    customClasses?: string;
+    validateOnChange?: boolean;
+    validators?: FieldValidator[];
+}
+
+// Opción para selects, radios, etc.
+export interface FieldOption {
+    value: unknown;
+    label: string;
+    disabled?: boolean;
+}
+
+// Grupo de opciones para selects
+export interface OptionGroup {
+    label: string;
+    options: FieldOption[];
+}
+
+// Definiciones específicas para cada tipo de campo
+export interface TextFieldConfig extends BaseFieldConfig {
+    type: 'text' | 'email' | 'password';
+    maxLength?: number;
+    minLength?: number;
+    pattern?: string;
+    autocomplete?: string;
+}
+
+export interface NumberFieldConfig extends BaseFieldConfig {
+    type: 'number';
+    min?: number;
+    max?: number;
+    step?: number;
+    prefix?: string;
+    suffix?: string;
+}
+
+export interface SelectFieldConfig extends BaseFieldConfig {
+    type: 'select';
+    options: FieldOption[];
+    multiple?: boolean;
+    searchable?: boolean;
+    clearable?: boolean;
+    optionGroups?: OptionGroup[];
+}
+
+export interface CheckboxFieldConfig extends BaseFieldConfig {
+    type: 'checkbox';
+    checkboxLabel?: string;
+}
+
+export interface DateFieldConfig extends BaseFieldConfig {
+    type: 'date';
+    min?: string;
+    max?: string;
+    disabledDates?: string[];
+    showWeekNumbers?: boolean;
+}
+
+export interface TextareaFieldConfig extends BaseFieldConfig {
+    type: 'textarea';
+    rows?: number;
+    minLength?: number;
+    maxLength?: number;
+    autoResize?: boolean;
+}
+
+export interface RadioFieldConfig extends BaseFieldConfig {
+    type: 'radio';
+    options: FieldOption[];
+    layout?: 'horizontal' | 'vertical';
+}
+
+// Unión de todos los tipos de campos
+export type FieldConfig =
+    | TextFieldConfig
+    | NumberFieldConfig
+    | SelectFieldConfig
+    | CheckboxFieldConfig
+    | DateFieldConfig
+    | TextareaFieldConfig
+    | RadioFieldConfig;
+
+// Configuración de una fila en el formulario
+export interface FormRow {
+    id: string;
+    fields: FieldConfig[];
+    visibleWhen?: DisplayCondition[];
+}
+
+// Configuración de una sección del formulario
+export interface FormSection {
+    id: string;
+    title?: string;
+    rows: FormRow[];
+    visibleWhen?: DisplayCondition[];
+    collapsible?: boolean;
+    collapsed?: boolean;
+}
+
+// Configuración de columna de tabla
+export interface TableColumn {
+    field: string;
+    header: string;
+    sortable?: boolean;
+    filterable?: boolean;
+    format?: 'date' | 'datetime' | 'currency' | 'number' | 'boolean' | 'custom';
+    formatFn?: string;
+    width?: string;
+    hidden?: boolean;
+}
+
+// Acción de tabla
+export interface TableAction {
+    label: string;
+    icon?: string;
+    action: string;
+    color?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info';
+    visibleCondition?: DisplayCondition;
+    disabledCondition?: DisplayCondition;
+    confirmMessage?: string;
+}
+
+// Configuración para la tabla
+export interface TableConfig {
+    columns: TableColumn[];
+    actions?: TableAction[];
+    paginationSize?: number;
+    sortField?: string;
+    sortDirection?: 'asc' | 'desc';
+    rowClass?: string | ((item: unknown) => string);
+    rowSelectable?: boolean;
+    multiSelect?: boolean;
+    exportable?: boolean;
+    exportFormats?: ('excel' | 'csv' | 'pdf')[];
+}
+
+// Endpoints de API
+export interface ApiEndpoints {
+    get?: string;
+    save?: string;
+    search?: string;
+    delete?: string;
+    export?: string;
+}
+
+// Configuración completa del formulario
+export interface PageFormConfig {
+    id: string;
+    title?: string;
+    sections: FormSection[];
+    maxColumns: number;
+    tableConfig?: TableConfig;
+    apiEndpoints?: ApiEndpoints;
+    formLayout?: 'horizontal' | 'vertical' | 'inline';
+    permissions?: string[];
+}
+
+// Tipo para respuesta de tabla
+export interface TableResult {
+    data: unknown[];
+    totalItems: number;
+}
+
+---- src/app/shared/components/dynamic-field/dynamic-field.component.ts ----
+import { Component, input, output, inject, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormGroupDirective } from '@angular/forms';
+import {
+  FieldConfig, TextFieldConfig, NumberFieldConfig, SelectFieldConfig,
+  CheckboxFieldConfig, DateFieldConfig, TextareaFieldConfig, RadioFieldConfig,
+  FieldValidator
+} from '../../models/form.models';
+
+interface ErrorMessages {
+  required?: string;
+  email?: string;
+  min?: string;
+  max?: string;
+  minLength?: string;
+  maxLength?: string;
+  pattern?: string;
+  [key: string]: string | undefined;
+}
+
+
+@Component({
+  selector: 'app-dynamic-field',
+  imports: [ReactiveFormsModule, CommonModule],
+  templateUrl: './dynamic-field.component.html',
+  styleUrl: './dynamic-field.component.scss'
+})
+export class DynamicFieldComponent {
+  // Input para la configuración del campo
+  config = input.required<FieldConfig>();
+  fieldChange = output<{ field: string, value: unknown }>();
+
+  // Obtener contexto del formulario usando linkedSignal
+  private formDirective = inject(FormGroupDirective);
+  formGroup = computed(() => this.formDirective.form);
+
+  // Señales computadas para el control actual
+  private control = computed(() => this.formGroup().get(this.config().name));
+
+  // Señales computadas para el estado del control
+  controlInvalid = computed(() => {
+    const ctrl = this.control();
+    return !!ctrl && ctrl.invalid;
+  });
+
+  controlTouched = computed(() => {
+    const ctrl = this.control();
+    return !!ctrl && ctrl.touched;
+  });
+
+  // Señales computadas para tipos específicos de campos
+  textConfig = computed(() => this.config() as TextFieldConfig);
+  numberConfig = computed(() => this.config() as NumberFieldConfig);
+  selectConfig = computed(() => this.config() as SelectFieldConfig);
+  checkboxConfig = computed(() => this.config() as CheckboxFieldConfig);
+  dateConfig = computed(() => this.config() as DateFieldConfig);
+  textareaConfig = computed(() => this.config() as TextareaFieldConfig);
+  radioConfig = computed(() => this.config() as RadioFieldConfig);
+
+  // Señal computada para el texto de error
+  errorText = computed(() => {
+    const ctrl = this.control();
+    if (!ctrl || !ctrl.errors) return '';
+
+    // Obtener mensajes personalizados
+    const customMessages = this.getCustomErrorMessages(this.config().validators);
+
+    // Errores estándar
+    if (ctrl.errors['required']) {
+      return customMessages?.['required'] || 'Este campo es obligatorio';
+    }
+
+    if (ctrl.errors['email']) {
+      return customMessages?.['email'] || 'Ingrese un correo electrónico válido';
+    }
+
+    if (ctrl.errors['min']) {
+      return customMessages?.['min'] ||
+        `El valor mínimo es ${ctrl.errors['min'].min}`;
+    }
+
+    if (ctrl.errors['max']) {
+      return customMessages?.['max'] ||
+        `El valor máximo es ${ctrl.errors['max'].max}`;
+    }
+
+    if (ctrl.errors['minlength']) {
+      return customMessages?.['minLength'] ||
+        `Debe tener al menos ${ctrl.errors['minlength'].requiredLength} caracteres`;
+    }
+
+    if (ctrl.errors['maxlength']) {
+      return customMessages?.['maxLength'] ||
+        `No debe exceder ${ctrl.errors['maxlength'].requiredLength} caracteres`;
+    }
+
+    if (ctrl.errors['pattern']) {
+      return customMessages?.['pattern'] || 'Formato no válido';
+    }
+
+    return 'Campo inválido';
+  });
+
+  // Obtener mensajes personalizados de validadores (función privada)
+  private getCustomErrorMessages(validators?: FieldValidator[]): ErrorMessages | undefined {
+    if (!validators || validators.length === 0) return undefined;
+
+    return validators.reduce((acc: ErrorMessages, validator) => {
+      if (validator.message) {
+        acc[validator.type] = validator.message;
+      }
+      return acc;
+    }, {});
+  }
+
+  // Manejar cambios en el campo
+  onFieldChange(): void {
+    const fieldName = this.config().name;
+    const ctrl = this.control();
+
+    if (ctrl) {
+      this.fieldChange.emit({
+        field: fieldName,
+        value: ctrl.value
+      });
+    }
+  }
+}
+
+---- src/app/shared/components/dynamic-field/dynamic-field.component.scss ----
+.form-group {
+  margin-bottom: 1rem;
+}
+.text-danger {
+  color: #dc3545;
+}
+.text-muted {
+  color: #6c757d;
+}
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.radio-horizontal {
+  flex-direction: row;
+  gap: 1.5rem;
+}
+
+---- src/app/shared/components/dynamic-field/dynamic-field.component.html ----
+<div [ngClass]="'col-' + config().colSpan" [formGroup]="formGroup()">
+    @switch (config().type) {
+    @case ('text') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
+        </label>
+        <input type="text" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('email') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
+        </label>
+        <input type="email" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('number') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <input type="number" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="numberConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            [min]="numberConfig().min ?? null" [max]="numberConfig().max ?? null" [step]="numberConfig().step || 1"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('select') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <select [formControlName]="config().name" class="form-select" [id]="config().name"
+            [ngClass]="config().customClasses || ''" [multiple]="selectConfig().multiple" (change)="onFieldChange()">
+            <option value="">Seleccione...</option>
+
+            <!-- Con grupos de opciones -->
+            @if (selectConfig().optionGroups && selectConfig().optionGroups?.length) {
+            @for (group of selectConfig().optionGroups; track group.label) {
+            <optgroup [label]="group.label">
+                @for (option of group.options; track option.value) {
+                <option [value]="option.value" [disabled]="option.disabled">
+                    {{option.label}}
+                </option>
+                }
+            </optgroup>
+            }
+            }
+            <!-- Sin grupos de opciones -->
+            @else {
+            @for (option of selectConfig().options; track option.value) {
+            <option [value]="option.value" [disabled]="option.disabled">
+                {{option.label}}
+            </option>
+            }
+            }
+        </select>
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('checkbox') {
+    <div class="form-check mt-4">
+        <input type="checkbox" [formControlName]="config().name" class="form-check-input" [id]="config().name"
+            [ngClass]="config().customClasses || ''" (change)="onFieldChange()">
+        <label class="form-check-label" [for]="config().name">
+            {{checkboxConfig().checkboxLabel || config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted d-block">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('date') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <input type="date" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [ngClass]="config().customClasses || ''" [min]="dateConfig().min" [max]="dateConfig().max"
+            (change)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('textarea') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <textarea [formControlName]="config().name" class="form-control" [id]="config().name"
+            [rows]="textareaConfig().rows || 3" [placeholder]="textareaConfig().placeholder || ''"
+            [ngClass]="config().customClasses || ''" [maxlength]="textareaConfig().maxLength ?? null"
+            (input)="onFieldChange()"></textarea>
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('radio') {
+    <div class="form-group">
+        <label class="d-block">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+
+        <div class="radio-group" [ngClass]="{'radio-horizontal': radioConfig().layout === 'horizontal'}">
+            @for (option of radioConfig().options; track option.value) {
+            <div class="form-check">
+                <input type="radio" [formControlName]="config().name" class="form-check-input"
+                    [id]="config().name + '_' + option.value" [value]="option.value" [disabled]="!!option.disabled"
+                    (change)="onFieldChange()">
+                <label class="form-check-label" [for]="config().name + '_' + option.value">
+                    {{option.label}}
+                </label>
+            </div>
+            }
+        </div>
+
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @case ('password') {
+    <div class="form-group">
+        <label [for]="config().name">
+            {{config().label}}
+            <span *ngIf="config().required" class="text-danger">*</span>
+        </label>
+        <input type="password" [formControlName]="config().name" class="form-control" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
+            (input)="onFieldChange()">
+        @if (controlInvalid() && controlTouched()) {
+        <div class="text-danger mt-1 small">
+            {{ errorText() }}
+        </div>
+        }
+        @if (config().hint) {
+        <small class="form-text text-muted">{{config().hint}}</small>
+        }
+    </div>
+    }
+
+    @default {
+    <div class="alert alert-warning">
+        Tipo de campo '{{config().type}}' no soportado
+    </div>
+    }
+    }
+</div>
+---- src/app/shared/components/dynamic-field/dynamic-field.component.spec.ts ----
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { DynamicFieldComponent } from './dynamic-field.component';
+
+describe('DynamicFieldComponent', () => {
+  let component: DynamicFieldComponent;
+  let fixture: ComponentFixture<DynamicFieldComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DynamicFieldComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(DynamicFieldComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+---- src/app/shared/components/dynamic-table/dynamic-table.component.scss ----
+.sort-btn {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+.actions-column {
+  width: 150px;
+}
+.actions-cell {
+  white-space: nowrap;
+}
+
+---- src/app/shared/components/dynamic-table/dynamic-table.component.html ----
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                @for (column of config().columns; track column.field) {
+                <th [style.width]="column.width || 'auto'">
+                    {{ column.header }}
+                    @if (column.sortable) {
+                    <button class="btn btn-sm sort-btn" (click)="onSort(column.field)">
+                        <i class="bi" [ngClass]="{
+                      'bi-arrow-down': sortField() === column.field && sortDirection() === 'desc',
+                      'bi-arrow-up': sortField() === column.field && sortDirection() === 'asc'
+                    }"></i>
+                    </button>
+                    }
+                </th>
+                }
+                @if (hasActions()) {
+                <th class="actions-column">Acciones</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @if (loading()) {
+            <tr>
+                <td [attr.colspan]="totalColumns()" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </td>
+            </tr>
+            } @else if (items().length === 0) {
+            <tr>
+                <td [attr.colspan]="totalColumns()" class="text-center py-4">
+                    No hay datos disponibles
+                </td>
+            </tr>
+            } @else {
+            @for (item of items(); track $index) {
+            <tr>
+                @for (column of config().columns; track column.field) {
+                <td>
+                    {{ formatCellValue(item, column) }}
+                </td>
+                }
+                @if (hasActions()) {
+                <td class="actions-cell">
+                    @for (action of config().actions || []; track action.action) {
+                    <button type="button" class="btn btn-sm me-1" [ngClass]="'btn-' + (action.color || 'secondary')"
+                        (click)="onAction(action.action, item)">
+                        @if (action.icon) {
+                        <i class="bi" [ngClass]="'bi-' + action.icon"></i>
+                        }
+                        {{ action.label }}
+                    </button>
+                    }
+                </td>
+                }
+            </tr>
+            }
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (pagination() && totalPages() > 1) {
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <li class="page-item" [class.disabled]="currentPage() === 1">
+            <button class="page-link" (click)="onPageChange(1)">&laquo;</button>
+        </li>
+        <li class="page-item" [class.disabled]="currentPage() === 1">
+            <button class="page-link" (click)="onPageChange(currentPage() - 1)">&lt;</button>
+        </li>
+
+        @for (page of displayedPages(); track page) {
+        <li class="page-item" [class.active]="currentPage() === page">
+            <button class="page-link" (click)="onPageChange(page)">{{ page }}</button>
+        </li>
+        }
+
+        <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+            <button class="page-link" (click)="onPageChange(currentPage() + 1)">&gt;</button>
+        </li>
+        <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+            <button class="page-link" (click)="onPageChange(totalPages())">&raquo;</button>
+        </li>
+    </ul>
+</nav>
+}
+---- src/app/shared/components/dynamic-table/dynamic-table.component.spec.ts ----
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { DynamicTableComponent } from './dynamic-table.component';
+
+describe('DynamicTableComponent', () => {
+  let component: DynamicTableComponent;
+  let fixture: ComponentFixture<DynamicTableComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DynamicTableComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(DynamicTableComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+---- src/app/shared/components/dynamic-table/dynamic-table.component.ts ----
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { TableConfig } from '../../models/form.models';
+import { FormDataService } from '../../services/form-data.service';
+import { CommonModule } from '@angular/common';
+@Component({
+  selector: 'app-dynamic-table',
+  imports: [CommonModule],
+  templateUrl: './dynamic-table.component.html',
+  styleUrl: './dynamic-table.component.scss'
+})
+export class DynamicTableComponent {
+  config = input.required<TableConfig>();
+
+  // URL para cargar datos
+  dataUrl = input<string>();
+
+  // Filtros externos
+  filters = input<Record<string, unknown>>({});
+
+  // Eventos de salida
+  rowAction = output<{ action: string, item: unknown }>();
+  rowSelect = output<unknown>();
+
+  // Servicios
+  private dataService = inject(FormDataService);
+
+  // Signals de estado internos
+  private _items = signal<unknown[]>([]);
+  private _loading = signal(false);
+  private _currentPage = signal(1);
+  private _pageSize = signal(10);
+  private _totalItems = signal(0);
+  private _sortField = signal('');
+  private _sortDirection = signal<'asc' | 'desc'>('asc');
+
+  // Signals públicos para acceso en plantilla
+  items = computed(() => this._items());
+  loading = computed(() => this._loading());
+  currentPage = computed(() => this._currentPage());
+  sortField = computed(() => this._sortField());
+  sortDirection = computed(() => this._sortDirection());
+
+  // Signals computadas para valores derivados
+  hasActions = computed(() => {
+    const actions = this.config().actions;
+    return !!actions && actions.length > 0;
+  });
+
+  totalColumns = computed(() => {
+    const actionsColumn = this.hasActions() ? 1 : 0;
+    return this.config().columns.length + actionsColumn;
+  });
+
+  pagination = computed(() => {
+    return this._totalItems() > this._pageSize();
+  });
+
+  totalPages = computed(() => {
+    return Math.ceil(this._totalItems() / this._pageSize());
+  });
+
+  displayedPages = computed(() => {
+    const total = this.totalPages();
+    const current = this._currentPage();
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, '...', total];
+    }
+
+    if (current >= total - 3) {
+      return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    }
+
+    return [1, '...', current - 1, current, current + 1, '...', total];
+  });
+
+  constructor() {
+    console.log('DynamicTableComponent constructor');
+
+    // Inicializar con el tamaño de página de la configuración
+    effect(() => {
+      const config = this.config();
+      console.log('Config en effect:', config);
+      if (config.paginationSize) {
+        this._pageSize.set(config.paginationSize);
+      }
+    });
+
+    // Effect para cargar datos cuando cambien los filtros o la URL
+    effect(() => {
+      const url = this.dataUrl();
+      const filters = this.filters();
+      console.log('Effect ejecutado - URL:', url, 'Filtros:', filters);
+
+      if (url) {
+        console.log('Cargando datos desde URL:', url);
+        // Usamos setTimeout para asegurar que este efecto se ejecute después de la inicialización
+        setTimeout(() => this.loadData(), 0);
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    console.log('DynamicTableComponent ngOnInit - URL:', this.dataUrl());
+    if (this.dataUrl()) {
+      // Carga inicial redundante para asegurar que se carguen los datos
+      console.log('Cargando datos en ngOnInit');
+      this.loadData();
+    }
+  }
+
+  // Cargar datos desde la API
+  loadData(): void {
+    try {
+      const url = this.dataUrl();
+      console.log('Método loadData() ejecutado con URL:', url);
+      if (!url) {
+        console.warn('No hay URL para cargar datos');
+        return;
+      }
+
+      this._loading.set(true);
+      console.log('Estado de carga activado');
+
+      // Preparar parámetros
+      const params = {
+        ...this.filters(),
+        page: this._currentPage(),
+        pageSize: this._pageSize(),
+        sortField: this._sortField(),
+        sortDirection: this._sortDirection()
+      };
+
+      console.log('Parámetros para la búsqueda:', params);
+
+      // Filtrar parámetros null/undefined
+      const filteredParams = Object.entries(params)
+        .filter(([_, value]) => value !== null && value !== undefined && value !== '')
+        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+      console.log('Parámetros filtrados:', filteredParams);
+      console.log('Haciendo solicitud HTTP a:', url);
+
+      this.dataService.searchTableData(url, filteredParams).subscribe({
+        next: (response) => {
+          console.log('Datos recibidos:', response);
+
+          if (!response) {
+            console.warn('Respuesta vacía recibida');
+            this._items.set([]);
+            this._totalItems.set(0);
+          } else {
+            this._items.set(response.data || []);
+            this._totalItems.set(response.totalItems || 0);
+            console.log('Items establecidos:', this._items());
+          }
+
+          this._loading.set(false);
+        },
+        error: (error) => {
+          console.error('Error al cargar datos:', error);
+          this._items.set([]);
+          this._totalItems.set(0);
+          this._loading.set(false);
+        },
+        complete: () => {
+          console.log('Solicitud completada');
+        }
+      });
+    } catch (e) {
+      console.error('Error en loadData:', e);
+      this._loading.set(false);
+    }
+  }
+
+  // Formatear el valor de una celda
+  formatCellValue(item: any, column: any): string {
+    const value = item[column.field];
+
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    // Aplicar formato si está definido
+    if (column.format) {
+      switch (column.format) {
+        case 'date':
+          return new Date(value).toLocaleDateString();
+        case 'datetime':
+          return new Date(value).toLocaleString();
+        case 'currency':
+          return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value);
+        case 'number':
+          return new Intl.NumberFormat('es-ES').format(value);
+        case 'boolean':
+          return value ? 'Sí' : 'No';
+        default:
+          return String(value);
+      }
+    }
+
+    return String(value);
+  }
+
+  // Manejar cambio de página
+  onPageChange(page: any): void {
+    if (page < 1 || page > this.totalPages() || page === this._currentPage()) {
+      return;
+    }
+
+    this._currentPage.set(page);
+    this.loadData();
+  }
+
+  // Manejar ordenación
+  onSort(field: string): void {
+    if (this._sortField() === field) {
+      // Cambiar dirección si el campo ya está seleccionado
+      this._sortDirection.update(dir => dir === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Establecer nuevo campo y dirección predeterminada
+      this._sortField.set(field);
+      this._sortDirection.set('asc');
+    }
+
+    // Volver a la primera página y recargar
+    this._currentPage.set(1);
+    this.loadData();
+  }
+
+  // Manejar acción en fila
+  onAction(action: string, item: unknown): void {
+    this.rowAction.emit({ action, item });
+  }
+
+  // Seleccionar fila
+  onRowSelect(item: unknown): void {
+    this.rowSelect.emit(item);
+  }
+
+  // Refrescar datos manualmente
+  refresh(): void {
+    this.loadData();
+  }
+}
+---- src/app/shared/components/dynamic-form/dynamic-form.component.ts ----
+import { Component, computed, effect, inject, input, model, output, signal, OnInit } from '@angular/core';
+import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { PageFormConfig } from '../../models/form.models';
+import { ConditionService } from '../../services/condition.service';
+import { DynamicFormService } from '../../services/dynamic-form.service';
+import { CommonModule } from '@angular/common';
+import { DynamicFieldComponent } from '../dynamic-field/dynamic-field.component';
+
+@Component({
+  selector: 'app-dynamic-form',
+  imports: [ReactiveFormsModule, CommonModule, DynamicFieldComponent],
+  templateUrl: './dynamic-form.component.html',
+  styleUrl: './dynamic-form.component.scss'
+})
+export class DynamicFormComponent implements OnInit {
+  // Inputs y outputs
+  config = input.required<PageFormConfig>();
+  initialData = input<Record<string, unknown> | null>(null);
+  submitButtonText = input('Guardar');
+  showReset = input(false);
+  saveOnSubmit = input(true);
+
+  // Two-way binding para formulario válido
+  formValid = model(false);
+
+  // Outputs
+  formSubmit = output<Record<string, unknown>>();
+  formCancel = output<void>();
+  formReset = output<void>();
+  fieldChange = output<{ field: string, value: unknown }>();
+
+  // Servicios
+  private formService = inject(DynamicFormService);
+  private conditionService = inject(ConditionService);
+
+  // Form y estado
+  form!: FormGroup;
+  fieldVisibility = signal<Record<string, boolean>>({});
+  sectionVisibility = signal<Record<string, boolean>>({});
+  rowVisibility = signal<Record<string, boolean>>({});
+  collapsedSections = signal<Set<string>>(new Set());
+
+  // Computed signals para valores derivados
+  formValues = computed(() => this.form?.getRawValue() as Record<string, unknown>);
+  formDirty = computed(() => this.form?.dirty || false);
+  formTouched = computed(() => this.form?.touched || false);
+  submitDisabled = computed(() => !this.form?.valid);
+  showResetButton = computed(() => this.showReset() && this.formDirty());
+
+  constructor() {
+    console.log('DynamicFormComponent constructor iniciado');
+
+    // Aplicar datos iniciales cuando estén disponibles
+    effect(() => {
+      const data = this.initialData();
+      if (data && this.form) {
+        console.log('Aplicando datos iniciales al formulario');
+        this.updateFormValues(data);
+        this.form.markAsPristine();
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    console.log('DynamicFormComponent ngOnInit');
+    try {
+      const formConfig = this.config();
+      if (formConfig) {
+        console.log('Inicializando formulario en ngOnInit con config:', formConfig.id);
+        this.initForm(formConfig);
+
+        // Inicializar secciones colapsadas
+        const collapsed = new Set<string>();
+        formConfig.sections.forEach(section => {
+          if (section.collapsible && section.collapsed) {
+            collapsed.add(section.id);
+          }
+        });
+        this.collapsedSections.set(collapsed);
+      }
+    } catch (error) {
+      console.error('Error durante la inicialización en ngOnInit:', error);
+    }
+  }
+
+  // Inicializar el formulario con manejo de errores apropiado
+  private initForm(config: PageFormConfig): void {
+    console.log('Iniciando creación completa del FormGroup');
+    try {
+      this.form = this.formService.createFormGroup(config);
+      this.formValid.set(this.form.valid);
+
+      // Inicializar visibilidad
+      const initialValues = this.form.getRawValue();
+      this.updateVisibility(initialValues as Record<string, unknown>);
+
+      // Añadir suscripción a valueChanges
+      console.log('Configurando suscripción a valueChanges');
+      this.form.valueChanges.subscribe({
+        next: (values) => {
+          try {
+            this.updateVisibility(values as Record<string, unknown>);
+            this.formValid.set(this.form.valid);
+            this.fieldChange.emit({
+              field: '_formValues',
+              value: values
+            });
+          } catch (error) {
+            console.error('Error en el manejo de valueChanges:', error);
+          }
+        },
+        error: (error) => console.error('Error en valueChanges:', error)
+      });
+
+      console.log('Inicialización completa exitosa');
+    } catch (error) {
+      console.error('Error en initForm completo:', error);
+    }
+  }
+
+  // Método de utilidad para actualizar los valores del formulario
+  private updateFormValues(data: Record<string, unknown>): void {
+    if (!data) return;
+
+    try {
+      // Actualizar los valores uno por uno para evitar problemas de tipo
+      Object.keys(data).forEach(key => {
+        const control = this.form.get(key);
+        if (control) {
+          control.setValue(data[key]);
+        }
+      });
+    } catch (error) {
+      console.error('Error al actualizar valores del formulario:', error);
+    }
+  }
+
+  // Actualizar la visibilidad de secciones, filas y campos
+  private updateVisibility(formValues: Record<string, unknown>): void {
+    try {
+      const config = this.config();
+
+      // Visibilidad de secciones
+      const sectionsMap: Record<string, boolean> = {};
+      config.sections.forEach(section => {
+        sectionsMap[section.id] = this.conditionService.shouldDisplay(section.visibleWhen, formValues);
+      });
+      this.sectionVisibility.set(sectionsMap);
+
+      // Visibilidad de filas
+      const rowsMap: Record<string, boolean> = {};
+      config.sections.forEach(section => {
+        const isSectionVisible = sectionsMap[section.id];
+
+        section.rows.forEach(row => {
+          rowsMap[row.id] = isSectionVisible &&
+            this.conditionService.shouldDisplay(row.visibleWhen, formValues);
+        });
+      });
+      this.rowVisibility.set(rowsMap);
+
+      // Visibilidad de campos
+      const fieldsMap: Record<string, boolean> = {};
+      // Recopilar primero todos los cambios de visibilidad
+      const controlChanges: { control: any, enable: boolean }[] = [];
+
+      config.sections.forEach(section => {
+        const isSectionVisible = sectionsMap[section.id];
+
+        section.rows.forEach(row => {
+          const isRowVisible = rowsMap[row.id];
+
+          row.fields.forEach(field => {
+            const isVisible = isRowVisible &&
+              this.conditionService.shouldDisplay(field.visibleWhen, formValues);
+
+            fieldsMap[field.name] = isVisible;
+
+            // Añadir a la lista de cambios pero no actualizar aún
+            const control = this.form.get(field.name);
+            if (control) {
+              controlChanges.push({ control, enable: isVisible });
+            }
+          });
+        });
+      });
+
+      // Actualizar la signal de visibilidad
+      this.fieldVisibility.set(fieldsMap);
+
+      // Aplicar cambios de habilitar/deshabilitar en batch sin emitir eventos
+      // Esto evita el ciclo infinito de actualizaciones
+      if (controlChanges.length > 0) {
+        // Desactivar temporalmente las notificaciones de valueChanges
+        const subscription = this.form.valueChanges.subscribe();
+        subscription.unsubscribe();
+
+        // Aplicar cambios
+        controlChanges.forEach(change => {
+          if (change.enable) {
+            change.control.enable({ emitEvent: false, onlySelf: true });
+          } else {
+            change.control.disable({ emitEvent: false, onlySelf: true });
+          }
+        });
+
+        // Actualizar el estado del formulario sin emitir evento
+        this.form.updateValueAndValidity({ emitEvent: false });
+      }
+    } catch (error) {
+      console.error('Error en updateVisibility:', error);
+    }
+  }
+
+  // Alternar el estado de colapso de una sección
+  toggleSectionCollapse(sectionId: string): void {
+    try {
+      this.collapsedSections.update(sections => {
+        const newSections = new Set(sections);
+        if (newSections.has(sectionId)) {
+          newSections.delete(sectionId);
+        } else {
+          newSections.add(sectionId);
+        }
+        return newSections;
+      });
+    } catch (error) {
+      console.error('Error al alternar colapso de sección:', error);
+    }
+  }
+
+  // Manejar cambio de valor en un campo
+  onFieldValueChange(event: { field: string, value: unknown }): void {
+    try {
+      // Emitir evento de cambio
+      this.fieldChange.emit(event);
+    } catch (error) {
+      console.error('Error en onFieldValueChange:', error);
+    }
+  }
+
+  // Manejar envío del formulario
+  onSubmit(): void {
+    try {
+      if (this.form.valid) {
+        const formData = this.form.getRawValue();
+
+        // Guardar en API si está configurado
+        if (this.saveOnSubmit()) {
+          const endpoint = this.config().apiEndpoints?.save;
+          if (endpoint) {
+            this.formService.submitForm(endpoint, formData).subscribe({
+              next: (response) => {
+                console.log('Datos guardados:', response);
+                this.formSubmit.emit(formData);
+                this.form.markAsPristine();
+              },
+              error: (error) => {
+                console.error('Error al guardar:', error);
+                // Aquí podrías manejar errores de validación del servidor
+              }
+            });
+          } else {
+            // Si no hay endpoint, solo emitir los datos
+            this.formSubmit.emit(formData);
+          }
+        } else {
+          // Si no se debe guardar automáticamente, solo emitir los datos
+          this.formSubmit.emit(formData);
+        }
+      } else {
+        // Marcar todos los campos como tocados para mostrar errores
+        Object.keys(this.form.controls).forEach(key => {
+          const control = this.form.get(key);
+          control?.markAsTouched();
+        });
+      }
+    } catch (error) {
+      console.error('Error en onSubmit:', error);
+    }
+  }
+
+  // Manejar cancelación del formulario
+  onCancel(): void {
+    try {
+      this.formCancel.emit();
+    } catch (error) {
+      console.error('Error en onCancel:', error);
+    }
+  }
+
+  // Manejar reset del formulario
+  onReset(): void {
+    try {
+      // Si hay datos iniciales, volver a ellos
+      if (this.initialData()) {
+        this.updateFormValues(this.initialData()!);
+      } else {
+        // Si no, resetear a valores por defecto
+        this.form.reset();
+      }
+      this.form.markAsPristine();
+      this.formReset.emit();
+    } catch (error) {
+      console.error('Error en onReset:', error);
+    }
+  }
+}
+---- src/app/shared/components/dynamic-form/dynamic-form.component.html ----
+<ng-container *ngIf="form">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        @if (config().title) {
+        <h2 class="mb-4">{{ config().title }}</h2>
+        }
+
+        @for (section of config().sections; track section.id) {
+        @if (sectionVisibility()[section.id]) {
+        <div class="form-section mb-4" [id]="section.id">
+            @if (section.title) {
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="section-title mb-0">{{ section.title }}</h3>
+                @if (section.collapsible) {
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                    (click)="toggleSectionCollapse(section.id)">
+                    {{ collapsedSections().has(section.id) ? 'Expandir' : 'Colapsar' }}
+                </button>
+                }
+            </div>
+            }
+
+            @if (!collapsedSections().has(section.id)) {
+            @for (row of section.rows; track row.id) {
+            @if (rowVisibility()[row.id]) {
+            <div class="row mb-3" [id]="row.id">
+                @for (field of row.fields; track field.name) {
+                @if (fieldVisibility()[field.name]) {
+                <app-dynamic-field [config]="field" (fieldChange)="onFieldValueChange($event)">
+                </app-dynamic-field>
+                }
+                }
+            </div>
+            }
+            }
+            }
+        </div>
+        }
+        }
+
+        <div class="form-actions mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary" [disabled]="submitDisabled()">
+                {{ submitButtonText() }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">
+                Cancelar
+            </button>
+            @if (showResetButton()) {
+            <button type="button" class="btn btn-outline-danger" (click)="onReset()">
+                Restablecer
+            </button>
+            }
+        </div>
+    </form>
+</ng-container>
+
+<div *ngIf="!form" class="alert alert-warning">
+    Inicializando formulario...
+</div>
+---- src/app/shared/components/dynamic-form/dynamic-form.component.scss ----
+.form-section {
+  padding: 1.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+---- src/app/shared/services/dynamic-form.service.ts ----
+import { Injectable, inject, signal } from '@angular/core';
+import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { PageFormConfig } from '../models/form.models';
+import { ConditionService } from './condition.service';
+import { FormDataService } from './form-data.service';
+
+@Injectable({
+    providedIn: 'root'
+})
+export class DynamicFormService {
+    private fb = inject(FormBuilder);
+    private conditionService = inject(ConditionService);
+    private dataService = inject(FormDataService);
+
+    // Signal para almacenar el estado de los formularios
+    private formState = signal<Map<string, unknown>>(new Map());
+
+    /**
+     * Crea un FormGroup a partir de la configuración del formulario
+     */
+    createFormGroup(config: PageFormConfig): FormGroup {
+        // Crear controles
+        const controls: Record<string, FormControl<unknown>> = {};
+
+        // Recorrer todos los campos y agregarlos al grupo
+        config.sections.forEach(section => {
+            section.rows.forEach(row => {
+                row.fields.forEach(field => {
+                    // Obtener los validadores para este campo
+                    const validators = this.conditionService.buildValidators(field);
+
+                    // Crear el control con su valor por defecto
+                    controls[field.name] = new FormControl<unknown>(
+                        field.defaultValue ?? null,
+                        validators
+                    );
+                });
+            });
+        });
+
+        // Crear el FormGroup
+        return this.fb.nonNullable.group(controls);
+    }
+
+    /**
+     * Obtiene el valor actual de un formulario del estado
+     */
+    getFormState(formId: string): Record<string, unknown> | null {
+        return (this.formState().get(formId) as Record<string, unknown>) || null;
+    }
+
+    /**
+     * Guarda el estado actual de un formulario
+     */
+    saveFormState(formId: string, state: Record<string, unknown>): void {
+        this.formState.update(states => {
+            const newStates = new Map(states);
+            newStates.set(formId, state);
+            return newStates;
+        });
+    }
+
+    /**
+     * Envía los datos del formulario a la API
+     */
+    submitForm(apiEndpoint: string, formData: Record<string, unknown>): Observable<unknown> {
+        return this.dataService.saveFormData(apiEndpoint, formData);
+    }
+
+    /**
+     * Carga datos para un formulario desde la API
+     */
+    loadFormData(apiEndpoint: string, params?: Record<string, unknown>): Observable<Record<string, unknown> | null> {
+        return this.dataService.loadFormData(apiEndpoint, params);
+    }
+}
+---- src/app/shared/services/form-registry.service.ts ----
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { Observable, catchError, lastValueFrom, of, tap } from 'rxjs';
+import { PageFormConfig } from '../models/form.models';
+
+@Injectable({
+    providedIn: 'root'
+})
+export class FormRegistryService {
+    private http = inject(HttpClient);
+
+    // Signal para almacenar formularios registrados
+    private formConfigs = signal<Map<string, PageFormConfig>>(new Map());
+
+    // Signal calculado para obtener la lista de IDs de formularios
+    readonly formIds = computed(() => Array.from(this.formConfigs().keys()));
+
+    /**
+     * Registra una configuración de formulario
+     */
+    registerForm(config: PageFormConfig): void {
+        // Usamos la API de mutación para actualizar la signal
+        this.formConfigs.update(forms => {
+            const newForms = new Map(forms);
+            newForms.set(config.id, config);
+            return newForms;
+        });
+    }
+
+    /**
+     * Obtiene una configuración de formulario por su ID
+     */
+    getFormConfig(formId: string): PageFormConfig | undefined {
+        return this.formConfigs().get(formId);
+    }
+
+    /**
+     * Inicializa los formularios predefinidos
+     */
+    initialize(): Promise<void> {
+        // En una app real, podrías cargar esto desde una API
+        // Por ahora, los formularios se registrarán desde los módulos de características
+        return Promise.resolve();
+    }
+
+    /**
+     * Carga configuraciones de formularios desde un endpoint
+     */
+    loadFormConfigs(url: string): Promise<void> {
+        return lastValueFrom(
+            this.http.get<PageFormConfig[]>(url).pipe(
+                tap(configs => {
+                    configs.forEach(config => this.registerForm(config));
+                }),
+                catchError(error => {
+                    console.error('Error loading form configurations:', error);
+                    return of(null);
+                })
+            )
+        ).then(() => { });
+    }
+}
+---- src/app/shared/services/condition.service.ts ----
+
+import { Injectable } from '@angular/core';
+import { ValidatorFn, Validators } from '@angular/forms';
+import { DisplayCondition, FieldConfig, FieldValidator, NumberFieldConfig, PageFormConfig, TextareaFieldConfig, TextFieldConfig } from '../models/form.models';
+
+@Injectable({
+    providedIn: 'root'
+})
+export class ConditionService {
+    /**
+     * Evalúa si un elemento debe mostrarse según sus condiciones
+     */
+    shouldDisplay(conditions: DisplayCondition[] | undefined, formValues: Record<string, unknown>): boolean {
+        // Si no hay condiciones, se muestra siempre
+        if (!conditions || conditions.length === 0) {
+            return true;
+        }
+
+        // Debe cumplirse todas las condiciones (AND lógico)
+        return conditions.every(condition => this.evaluateCondition(condition, formValues));
+    }
+
+    /**
+     * Evalúa una condición individual
+     */
+    private evaluateCondition(condition: DisplayCondition, formValues: Record<string, unknown>): boolean {
+        // Si el campo fuente no existe en los valores, la condición falla
+        if (!(condition.sourceField in formValues)) {
+            return false;
+        }
+
+        const sourceValue = formValues[condition.sourceField];
+
+        switch (condition.operator) {
+            case 'equals':
+                return sourceValue === condition.value;
+
+            case 'notEquals':
+                return sourceValue !== condition.value;
+
+            case 'contains': {
+                if (typeof sourceValue === 'string') {
+                    return sourceValue.includes(String(condition.value || ''));
+                } else if (Array.isArray(sourceValue)) {
+                    return sourceValue.includes(condition.value as never);
+                }
+                return false;
+            }
+
+            case 'in': {
+                // Aquí condition.value debe ser un array
+                return Array.isArray(condition.value) && condition.value.includes(sourceValue as never);
+            }
+
+            case 'greaterThan': {
+                const numValue = Number(sourceValue);
+                const compareValue = Number(condition.value);
+                return !isNaN(numValue) && !isNaN(compareValue) && numValue > compareValue;
+            }
+
+            case 'lessThan': {
+                const numValue = Number(sourceValue);
+                const compareValue = Number(condition.value);
+                return !isNaN(numValue) && !isNaN(compareValue) && numValue < compareValue;
+            }
+
+            case 'isEmpty':
+                return sourceValue === null || sourceValue === undefined ||
+                    sourceValue === '' || (Array.isArray(sourceValue) && sourceValue.length === 0);
+
+            case 'isNotEmpty':
+                return sourceValue !== null && sourceValue !== undefined &&
+                    sourceValue !== '' && (!Array.isArray(sourceValue) || sourceValue.length > 0);
+
+            default:
+                console.warn(`Operador '${condition.operator}' no soportado`);
+                return false;
+        }
+    }
+
+    /**
+     * Actualiza la visibilidad de todos los campos en el formulario
+     */
+    updateFieldVisibility(config: PageFormConfig, formValues: Record<string, unknown>): Record<string, boolean> {
+        const fieldVisibility: Record<string, boolean> = {};
+
+        // Iteramos por cada sección, fila y campo
+        config.sections.forEach(section => {
+            // Primero verificamos si la sección es visible
+            const isSectionVisible = this.shouldDisplay(section.visibleWhen, formValues);
+
+            section.rows.forEach(row => {
+                // Verificamos si la fila es visible (solo si la sección también lo es)
+                const isRowVisible = isSectionVisible && this.shouldDisplay(row.visibleWhen, formValues);
+
+                row.fields.forEach(field => {
+                    // Un campo es visible si la sección y fila son visibles, y además cumple sus propias condiciones
+                    fieldVisibility[field.name] = isRowVisible && this.shouldDisplay(field.visibleWhen, formValues);
+                });
+            });
+        });
+
+        return fieldVisibility;
+    }
+
+    /**
+     * Construye validadores basados en la configuración del campo
+     */
+    buildValidators(field: FieldConfig): ValidatorFn[] {
+        const validators: ValidatorFn[] = [];
+
+        // Validador required
+        if (field.required) {
+            validators.push(Validators.required);
+        }
+
+        // Validadores adicionales según el tipo de campo
+        if (field.type === 'text' || field.type === 'email' || field.type === 'password' || field.type === 'textarea') {
+            const textField = field as TextFieldConfig | TextareaFieldConfig;
+
+            if (textField.minLength) {
+                validators.push(Validators.minLength(textField.minLength));
+            }
+
+            if (textField.maxLength) {
+                validators.push(Validators.maxLength(textField.maxLength));
+            }
+
+            if (field.type === 'email') {
+                validators.push(Validators.email);
+            }
+
+            if ('pattern' in textField && textField.pattern) {
+                validators.push(Validators.pattern(textField.pattern));
+            }
+        }
+
+        if (field.type === 'number') {
+            const numField = field as NumberFieldConfig;
+
+            if (numField.min !== undefined) {
+                validators.push(Validators.min(numField.min));
+            }
+
+            if (numField.max !== undefined) {
+                validators.push(Validators.max(numField.max));
+            }
+        }
+
+        // Validadores personalizados
+        if (field.validators && field.validators.length > 0) {
+            field.validators.forEach(validator => {
+                switch (validator.type) {
+                    case 'min':
+                        validators.push(Validators.min(validator.value as number));
+                        break;
+                    case 'max':
+                        validators.push(Validators.max(validator.value as number));
+                        break;
+                    case 'minLength':
+                        validators.push(Validators.minLength(validator.value as number));
+                        break;
+                    case 'maxLength':
+                        validators.push(Validators.maxLength(validator.value as number));
+                        break;
+                    case 'email':
+                        validators.push(Validators.email);
+                        break;
+                    case 'pattern':
+                        validators.push(Validators.pattern(validator.value as string));
+                        break;
+                }
+            });
+        }
+
+        return validators;
+    }
+}
+---- src/app/shared/services/form-data.service.ts ----
+
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, map, of } from 'rxjs';
+import { TableResult } from '../../shared/models/form.models';
+
+interface ApiResponse {
+    data?: unknown[];
+    items?: unknown[];
+    results?: unknown[];
+    totalItems?: number;
+    total?: number;
+    count?: number;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class FormDataService {
+    private http = inject(HttpClient);
+
+    /**
+     * Carga datos para un formulario
+     */
+    loadFormData(endpoint: string, params?: Record<string, unknown>): Observable<Record<string, unknown> | null> {
+        const url = new URL(endpoint, window.location.origin);
+
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    url.searchParams.append(key, String(value));
+                }
+            });
+        }
+
+        return this.http.get<Record<string, unknown>>(url.toString()).pipe(
+            catchError(error => {
+                console.error('Error loading form data:', error);
+                return of(null);
+            })
+        );
+    }
+
+    /**
+     * Guarda datos de un formulario
+     */
+    saveFormData(endpoint: string, data: Record<string, unknown>): Observable<unknown> {
+        return this.http.post(endpoint, data).pipe(
+            catchError(error => {
+                console.error('Error saving form data:', error);
+                return of(null);
+            })
+        );
+    }
+
+    /**
+     * Busca datos para la tabla
+     */
+    searchTableData(endpoint: string, params?: Record<string, unknown>): Observable<TableResult> {
+        const url = new URL(endpoint, window.location.origin);
+
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    url.searchParams.append(key, String(value));
+                }
+            });
+        }
+
+        return this.http.get<ApiResponse | unknown[]>(url.toString()).pipe(
+            map(response => {
+                // Si es un array directamente
+                if (Array.isArray(response)) {
+                    return {
+                        data: response,
+                        totalItems: response.length
+                    };
+                }
+
+                // Si es un objeto de respuesta API
+                const apiResponse = response as ApiResponse;
+                return {
+                    data: apiResponse['data'] || apiResponse['items'] || apiResponse['results'] || [],
+                    totalItems: apiResponse['totalItems'] || apiResponse['total'] || apiResponse['count'] || 0
+                };
+            }),
+            catchError(error => {
+                console.error('Error searching table data:', error);
+                return of({ data: [], totalItems: 0 });
+            })
+        );
+    }
+
+    /**
+     * Elimina un registro
+     */
+    deleteRecord(endpoint: string, id: string | number): Observable<unknown> {
+        return this.http.delete(`${endpoint}/${id}`).pipe(
+            catchError(error => {
+                console.error('Error deleting record:', error);
+                return of(null);
+            })
+        );
+    }
+
+    /**
+     * Exporta datos
+     */
+    exportData(endpoint: string, format: string, params?: Record<string, unknown>): Observable<Blob> {
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.append('format', format);
+
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    url.searchParams.append(key, String(value));
+                }
+            });
+        }
+
+        return this.http.get(url.toString(), {
+            responseType: 'blob'
+        }).pipe(
+            catchError(error => {
+                console.error('Error exporting data:', error);
+                // Retornar un blob vacío en caso de error
+                return of(new Blob([]));
+            })
+        );
+    }
+}
+
+---- src/app/shared/services/http-mock.interceptor.ts ----
+import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
+import { of } from 'rxjs';
+
+export const httpMockInterceptor: HttpInterceptorFn = (req, next) => {
+
+
+
+  // Interceptar búsqueda de empleados
+  if (req.url.includes('/api/employees/search')) {
+    console.log('Interceptando búsqueda de empleados');
+    return of(new HttpResponse({
+      status: 200,
+      body: {
+        data: [
+          { id: '1', firstName: 'Juan', lastName: 'López', employeeType: 'fullTime', department: 'it', hireDate: '2023-01-15' },
+          { id: '2', firstName: 'Ana', lastName: 'García', employeeType: 'partTime', department: 'hr', hireDate: '2023-03-10' }
+        ],
+        totalItems: 2
+      }
+    }));
+  }
+  // Interceptar búsqueda de tiendas
+  else if (req.url.includes('/api/stores/search')) {
+    console.log('Interceptando búsqueda de tiendas');
+    return of(new HttpResponse({
+      status: 200,
+      body: {
+        data: [
+          { id: '1', name: 'Tienda Central', storeType: 'physical', foundedDate: '2020-05-15', active: true },
+          { id: '2', name: 'E-Shop Premium', storeType: 'online', foundedDate: '2021-03-22', active: true },
+          { id: '3', name: 'Mercado Plus', storeType: 'hybrid', foundedDate: '2019-11-10', active: false }
+        ],
+        totalItems: 3
+      }
+    }));
+  }
+  // Otras operaciones de tiendas
+  else if (req.url.includes('/api/stores')) {
+    console.log('Interceptando operación de tiendas');
+    return of(new HttpResponse({
+      status: 200,
+      body: {}
+    }));
+  }
+  // Otras operaciones de empleados
+  else if (req.url.includes('/api/employees')) {
+    console.log('Interceptando operación de empleados');
+    return of(new HttpResponse({
+      status: 200,
+      body: {}
+    }));
+  }
+  return next(req);
+};
+
+---- src/app/app.component.ts ----
+import { Component } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.scss'
+})
+export class AppComponent {
+  title = 'forms';
+}
+
+---- src/app/app.config.ts ----
+import { ApplicationConfig, inject, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { routes } from './app.routes';
+import { EMPLOYEE_FORM_CONFIG } from './features/employees/models/employee-form.config';
+import { FormRegistryService } from './shared/services/form-registry.service';
+import { httpMockInterceptor } from './shared/services/http-mock.interceptor';
+import { STORE_FORM_CONFIG } from './features/stores/models/store-form.config';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([httpMockInterceptor])),
+
+    provideAppInitializer(() => {
+      console.log('Inicializando aplicación...');
+      const formRegistry = inject(FormRegistryService);
+
+      // Registrar formularios específicos
+      formRegistry.registerForm(EMPLOYEE_FORM_CONFIG);
+      formRegistry.registerForm(STORE_FORM_CONFIG);
+      console.log('Formularios registrados:', EMPLOYEE_FORM_CONFIG.id, STORE_FORM_CONFIG.id);
+      return Promise.resolve();
+    })
+  ]
+};
+
+---- src/main.ts ----
+import { bootstrapApplication } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { AppComponent } from './app/app.component';
+
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) => console.error(err));
+
+---- src/styles.scss ----
+/* You can add global styles to this file, and also import other style files */
+

@@ -1,0 +1,52 @@
+<div class="container-fluid py-4">
+    <h1 class="mb-4">{{ pageTitle() }}</h1>
+
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    @if (formConfig()) {
+                    <app-dynamic-form
+                        [config]="formConfig()!"
+                        [initialData]="selectedEmployee()"
+                        (formSubmit)="onFormSubmit($event)"
+                        (formCancel)="onFormCancel()"
+                        (fieldChange)="onFieldChange($event)"
+                        [(formValid)]="isFormValid"/>
+                        } @else {
+                        <div class="alert alert-warning">
+                            No se encontró la configuración del formulario
+                        </div>
+                        }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Empleados</h5>
+
+                    @if (formConfig()?.tableConfig) {
+                    <app-dynamic-table                        
+                        [config]="formConfig()!.tableConfig!"
+                        [dataUrl]="tableDataUrl()"
+                        [filters]="tableFilters()"
+                        (rowAction)="onTableAction($event)"
+                        />
+                        } @else {
+                        <div class="alert alert-info">
+                            No se encontró la configuración de la tabla
+                        </div>
+                        }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="container mt-5">
+        <h1>Prueba de Empleados</h1>
+        <div class="alert alert-info">
+            Esta es una página de prueba
+        </div>
+    </div>

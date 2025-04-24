@@ -1,0 +1,41 @@
+<div class="container-fluid py-4">
+     <div class="row">
+        <!-- Área de formulario -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    @if (formConfig()) {
+                    <app-dynamic-form [config]="formConfig()!" 
+                        [initialData]="selectedStore()"
+                        (formSubmit)="onFormSubmit($event)" 
+                        (formCancel)="onFormCancel()"
+                        (fieldChange)="onFieldChange($event)" 
+                        [(formValid)]="isFormValid" />
+                    } @else {
+                    <div class="alert alert-warning">
+                        No se encontró la configuración del formulario
+                    </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de tabla -->
+        <!-- <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Tiendas</h5>
+
+                    @if (formConfig()?.tableConfig) {
+                    <app-dynamic-table [config]="formConfig()!.tableConfig!" [dataUrl]="tableDataUrl()"
+                        [filters]="tableFilters()" (rowAction)="onTableAction($event)" />
+                    } @else {
+                    <div class="alert alert-info">
+                        No se encontró la configuración de la tabla
+                    </div>
+                    }
+                </div>
+            </div>
+        </div> -->
+    </div>
+</div>
