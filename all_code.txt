@@ -547,7 +547,7 @@ export interface StoreFormModel {
         </div>
 
         <!-- Área de tabla -->
-        <div class="col-md-12">
+        <!-- <div class="col-md-12">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title mb-3">Tiendas</h5>
@@ -562,7 +562,7 @@ export interface StoreFormModel {
                     }
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 </div>
 ---- src/app/features/stores/stores-page.component.ts ----
@@ -591,7 +591,6 @@ export class StoresPageComponent {
   private _tableFilters = signal<Record<string, unknown>>({});
   tableFilters = computed(() => this._tableFilters());
 
-  // Configuración del formulario actual
   formConfig = computed(() => {
     return this.formRegistry.getFormConfig(this.formId());
   });
@@ -603,17 +602,15 @@ export class StoresPageComponent {
   });
 
   constructor() {
-    console.log('StorePageComponent inicializado');
 
     // Cargar datos manualmente al inicializar
     setTimeout(() => {
       const url = this.tableDataUrl();
-      console.log('URL para cargar datos:', url);
 
       if (url) {
         this.dataService.searchTableData(url, {}).subscribe({
           next: (response) => {
-            console.log('Datos cargados manualmente:', response);
+
           },
           error: (error) => {
             console.error('Error al cargar datos manualmente:', error);
@@ -625,14 +622,13 @@ export class StoresPageComponent {
 
   // Manejar envío del formulario
   onFormSubmit(formData: Record<string, unknown>): void {
-    console.log('Formulario enviado:', formData);
 
     // Guardar en estado o enviar a API
     const endpoint = this.formConfig()?.apiEndpoints?.save;
     if (endpoint) {
       this.dataService.saveFormData(endpoint, formData).subscribe({
         next: (response) => {
-          console.log('Datos guardados:', response);
+
           // Actualizar filtros de tabla para recargar datos
           this._tableFilters.update(filters => ({ ...filters, _timestamp: Date.now() }));
           this.selectedStore.set(null);
@@ -646,13 +642,13 @@ export class StoresPageComponent {
 
   // Manejar cancelación del formulario
   onFormCancel(): void {
-    console.log('Formulario cancelado');
+
     this.selectedStore.set(null);
   }
 
   // Manejar cambio en campos del formulario
   onFieldChange(event: { field: string, value: unknown }): void {
-    console.log('Campo cambiado:', event);
+
   }
 
   // Manejar acción de tabla
@@ -776,7 +772,6 @@ export class EmployeePageComponent {
 
   ngOnInit() {
     const url = this.tableDataUrl();
-    console.log('URL para cargar datos:', url);
 
     if (url) {
       this.dataService.searchTableData(url, {}).subscribe({
@@ -844,7 +839,7 @@ export class EmployeePageComponent {
 
   // Manejar cambio en campos del formulario
   onFieldChange(event: { field: string, value: unknown }): void {
-    console.log('Campo cambiado:', event);
+
   }
 
   // Manejar acción de tabla
@@ -1426,34 +1421,51 @@ export interface TableResult {
 }
 
 ---- src/app/shared/components/dynamic-field/dynamic-field.component.ts ----
-import { Component, input, output, inject, computed } from '@angular/core';
+import { Component, input, output, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormGroupDirective } from '@angular/forms';
+import { AbstractControl, FormControl, ReactiveFormsModule, FormGroupDirective, ValidationErrors, ValidatorFn } from '@angular/forms';
 import {
   FieldConfig, TextFieldConfig, NumberFieldConfig, SelectFieldConfig,
-  CheckboxFieldConfig, DateFieldConfig, TextareaFieldConfig, RadioFieldConfig,
-  FieldValidator
+  CheckboxFieldConfig, DateFieldConfig, TextareaFieldConfig, RadioFieldConfig
 } from '../../models/form.models';
 
-interface ErrorMessages {
-  required?: string;
-  email?: string;
-  min?: string;
-  max?: string;
-  minLength?: string;
-  maxLength?: string;
-  pattern?: string;
-  [key: string]: string | undefined;
-}
+/**
+ * Validador personalizado para campos select requeridos
+ */
+export function selectRequiredValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value;
 
+    // Verificar diferentes formatos de valores vacíos
+    if (value === null || value === undefined || value === '') {
+      return { 'required': true };
+    }
+
+    // Verificar arrays vacíos o con valores vacíos
+    if (Array.isArray(value)) {
+      if (value.length === 0) return { 'required': true };
+      if (value.length === 1 && (value[0] === '' || value[0] === null)) return { 'required': true };
+    }
+
+    // Verificar el formato especial de Angular para selects
+    if (typeof value === 'string' && (value.startsWith('0:') || value === '')) {
+      return { 'required': true };
+    }
+
+    return null;
+  };
+}
 
 @Component({
   selector: 'app-dynamic-field',
   imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './dynamic-field.component.html',
-  styleUrl: './dynamic-field.component.scss'
+  styleUrl: './dynamic-field.component.scss',
+  host: {
+    '[class]': '"col-" + config().colSpan'
+  }
 })
-export class DynamicFieldComponent {
+export class DynamicFieldComponent implements OnInit {
   // Input para la configuración del campo
   config = input.required<FieldConfig>();
   fieldChange = output<{ field: string, value: unknown }>();
@@ -1465,15 +1477,53 @@ export class DynamicFieldComponent {
   // Señales computadas para el control actual
   private control = computed(() => this.formGroup().get(this.config().name));
 
+  // Método para verificar si un valor de select está vacío
+  private isEmptySelectValue(value: unknown): boolean {
+    // Comprueba si el valor está vacío según varios formatos posibles
+    if (value === null || value === undefined || value === '') return true;
+
+    // Si es un array con un solo elemento vacío (como [''])
+    if (Array.isArray(value) && (value.length === 0 || (value.length === 1 && (value[0] === '' || value[0] === null)))) {
+      return true;
+    }
+
+    // Si es una cadena que comienza con "0: ''" (formato Angular de selects)
+    if (typeof value === 'string' && (value.startsWith('0:') || value === '')) {
+      return true;
+    }
+
+    return false;
+  }
+
   // Señales computadas para el estado del control
   controlInvalid = computed(() => {
     const ctrl = this.control();
-    return !!ctrl && ctrl.invalid;
-  });
 
-  controlTouched = computed(() => {
-    const ctrl = this.control();
-    return !!ctrl && ctrl.touched;
+    if (!ctrl) return false;
+
+    // Si el control está tocado o dirty y es inválido, mostrar error
+    if (ctrl.invalid && (ctrl.touched || ctrl.dirty)) {
+      return true;
+    }
+
+    // Manejo especial para selects requeridos
+    if (this.config().type === 'select' && this.config().required) {
+      if ((ctrl.touched || ctrl.dirty) && this.isEmptySelectValue(ctrl.value)) {
+        return true;
+      }
+    }
+
+    // Manejo especial para campos de texto requeridos
+    if ((this.config().type === 'text' || this.config().type === 'textarea' ||
+      this.config().type === 'email' || this.config().type === 'password') &&
+      this.config().required) {
+      if ((ctrl.touched || ctrl.dirty) &&
+        (ctrl.value === '' || ctrl.value === null || ctrl.value === undefined)) {
+        return true;
+      }
+    }
+
+    return false;
   });
 
   // Señales computadas para tipos específicos de campos
@@ -1488,57 +1538,125 @@ export class DynamicFieldComponent {
   // Señal computada para el texto de error
   errorText = computed(() => {
     const ctrl = this.control();
-    if (!ctrl || !ctrl.errors) return '';
+    if (!ctrl) return '';
 
-    // Obtener mensajes personalizados
-    const customMessages = this.getCustomErrorMessages(this.config().validators);
+    // Manejo especial para selects requeridos vacíos
+    if (this.config().type === 'select' && this.config().required) {
+      if (this.isEmptySelectValue(ctrl.value)) {
+        return 'Este campo es obligatorio';
+      }
+    }
+
+    // Verificar si el campo es requerido y está vacío
+    if (this.config().required) {
+      if (this.config().type === 'text' || this.config().type === 'textarea' ||
+        this.config().type === 'email' || this.config().type === 'password') {
+        if (ctrl.value === '' || ctrl.value === null || ctrl.value === undefined) {
+          return 'Este campo es obligatorio';
+        }
+      }
+    }
+
+    // Mostrar errores solo si el control está tocado o dirty
+    if (!ctrl.errors || (!ctrl.touched && !ctrl.dirty)) return '';
 
     // Errores estándar
     if (ctrl.errors['required']) {
-      return customMessages?.['required'] || 'Este campo es obligatorio';
+      return 'Este campo es obligatorio';
     }
 
     if (ctrl.errors['email']) {
-      return customMessages?.['email'] || 'Ingrese un correo electrónico válido';
+      return 'Debe ser un correo electrónico válido';
     }
 
     if (ctrl.errors['min']) {
-      return customMessages?.['min'] ||
-        `El valor mínimo es ${ctrl.errors['min'].min}`;
+      return `El valor mínimo es ${ctrl.errors['min'].min}`;
     }
 
     if (ctrl.errors['max']) {
-      return customMessages?.['max'] ||
-        `El valor máximo es ${ctrl.errors['max'].max}`;
+      return `El valor máximo es ${ctrl.errors['max'].max}`;
     }
 
     if (ctrl.errors['minlength']) {
-      return customMessages?.['minLength'] ||
-        `Debe tener al menos ${ctrl.errors['minlength'].requiredLength} caracteres`;
+      return `Debe tener al menos ${ctrl.errors['minlength'].requiredLength} caracteres`;
     }
 
     if (ctrl.errors['maxlength']) {
-      return customMessages?.['maxLength'] ||
-        `No debe exceder ${ctrl.errors['maxlength'].requiredLength} caracteres`;
+      return `No debe exceder ${ctrl.errors['maxlength'].requiredLength} caracteres`;
     }
 
     if (ctrl.errors['pattern']) {
-      return customMessages?.['pattern'] || 'Formato no válido';
+      return 'El formato no es válido';
     }
 
-    return 'Campo inválido';
+    // Si hay otro tipo de error, mostrar la clave del error
+    const firstError = Object.keys(ctrl.errors)[0];
+    return `Error de validación: ${firstError}`;
   });
 
-  // Obtener mensajes personalizados de validadores (función privada)
-  private getCustomErrorMessages(validators?: FieldValidator[]): ErrorMessages | undefined {
-    if (!validators || validators.length === 0) return undefined;
+  // CSS dinámico para el campo según estado
+  inputClass = computed(() => {
+    const isInvalid = this.controlInvalid();
+    const classes: Record<string, boolean> = {
+      'form-control': this.config().type !== 'select',  // Para inputs normales
+      'form-select': this.config().type === 'select',   // Para selects
+      'is-invalid': isInvalid
+    };
 
-    return validators.reduce((acc: ErrorMessages, validator) => {
-      if (validator.message) {
-        acc[validator.type] = validator.message;
+    // Verificar explícitamente si es inválido para campo requerido
+    const ctrl = this.control();
+    if (ctrl && this.config().required && (ctrl.touched || ctrl.dirty)) {
+      // Para campos de texto
+      if ((this.config().type === 'text' || this.config().type === 'textarea' ||
+        this.config().type === 'email' || this.config().type === 'password')) {
+        if (ctrl.value === '' || ctrl.value === null || ctrl.value === undefined) {
+          classes['is-invalid'] = true;
+        }
       }
-      return acc;
-    }, {});
+
+      // Para selects
+      if (this.config().type === 'select') {
+        if (this.isEmptySelectValue(ctrl.value)) {
+          classes['is-invalid'] = true;
+        }
+      }
+    }
+
+    // Agregar clases personalizadas
+    const customClasses = this.config().customClasses;
+    if (customClasses) {
+      customClasses.split(' ').forEach(cls => {
+        if (cls.trim()) {
+          classes[cls.trim()] = true;
+        }
+      });
+    }
+
+    return classes;
+  });
+
+  ngOnInit(): void {
+    // Configuración inicial para campos obligatorios
+    if (this.config().required) {
+      const ctrl = this.control();
+      if (ctrl) {
+        // Para selects
+        if (this.config().type === 'select') {
+          if (this.isEmptySelectValue(ctrl.value)) {
+            ctrl.setErrors({ 'required': true });
+            ctrl.addValidators(selectRequiredValidator());
+          }
+        }
+
+        // Para campos de texto
+        if (this.config().type === 'text' || this.config().type === 'textarea' ||
+          this.config().type === 'email' || this.config().type === 'password') {
+          if (ctrl.value === '' || ctrl.value === null || ctrl.value === undefined) {
+            ctrl.setErrors({ 'required': true });
+          }
+        }
+      }
+    }
   }
 
   // Manejar cambios en el campo
@@ -1547,36 +1665,153 @@ export class DynamicFieldComponent {
     const ctrl = this.control();
 
     if (ctrl) {
+      // Manejo especial para selects: verificar si está vacío después de un cambio
+      if (this.config().type === 'select' && this.config().required) {
+        if (this.isEmptySelectValue(ctrl.value)) {
+          ctrl.setErrors({ 'required': true });
+        }
+      }
+
+      // Manejo especial para campos de texto vacíos
+      if ((this.config().type === 'text' || this.config().type === 'textarea' ||
+        this.config().type === 'email' || this.config().type === 'password') &&
+        this.config().required) {
+        if (ctrl.value === '' || ctrl.value === null || ctrl.value === undefined) {
+          ctrl.setErrors({ 'required': true });
+        }
+      }
+
+      // Marcar como dirty y touched para detectar cambios y mostrar errores
+      ctrl.markAsDirty();
+      ctrl.markAsTouched();
+      ctrl.updateValueAndValidity();
+
+      // Emitir evento de cambio
       this.fieldChange.emit({
         field: fieldName,
         value: ctrl.value
       });
     }
   }
-}
 
+  // Método para manejar el evento de perdida de foco
+  onBlur(): void {
+    const ctrl = this.control();
+    if (ctrl) {
+      // Al perder el foco, marcar el campo como tocado para mostrar errores
+      ctrl.markAsTouched();
+
+      // Manejo especial para campos de texto vacíos
+      if ((this.config().type === 'text' || this.config().type === 'textarea' ||
+        this.config().type === 'email' || this.config().type === 'password') &&
+        this.config().required) {
+        if (ctrl.value === '' || ctrl.value === null || ctrl.value === undefined) {
+          ctrl.setErrors({ 'required': true });
+          // Forzar actualización de la validación visual
+          setTimeout(() => {
+            ctrl.updateValueAndValidity();
+          }, 0);
+        }
+      }
+
+      // Manejo especial para selects: verificar si está vacío cuando pierde el foco
+      if (this.config().type === 'select' && this.config().required) {
+        if (this.isEmptySelectValue(ctrl.value)) {
+          ctrl.setErrors({ 'required': true });
+          // Forzar actualización de la validación visual
+          setTimeout(() => {
+            ctrl.updateValueAndValidity();
+          }, 0);
+        }
+      }
+
+      ctrl.updateValueAndValidity();
+    }
+  }
+}
 ---- src/app/shared/components/dynamic-field/dynamic-field.component.scss ----
 .form-group {
   margin-bottom: 1rem;
 }
+
 .text-danger {
   color: #dc3545;
 }
+
 .text-muted {
   color: #6c757d;
 }
+
+/* Estilos para inputs inválidos - Bootstrap standard */
+
+.is-invalid {
+  border-color: #dc3545 !important;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Mostrar mensajes de error */
+.invalid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: #dc3545;
+}
+
+/* Estilos para grupos de radio */
 .radio-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
+
 .radio-horizontal {
   flex-direction: row;
   gap: 1.5rem;
 }
 
+/* Estilos para checkboxes */
+.form-check-input.is-invalid {
+  border-color: #dc3545;
+}
+
+.form-check-input.is-invalid:checked {
+  background-color: #dc3545;
+}
+
+/* Estilo para campos requeridos */
+label {
+  font-weight: 500;
+}
+
+label .text-danger {
+  margin-left: 2px;
+}
+
+/* Estilos específicos para select inválido */
+select.is-invalid {
+  border-color: #dc3545 !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e"),
+    url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center, center right 2.25rem;
+  background-size: 16px 12px, 16px 12px;
+  background-repeat: no-repeat;
+}
+
+/* Forzar borde rojo incluso cuando el navegador intenta aplicar otros estilos */
+input.form-control.is-invalid,
+textarea.form-control.is-invalid,
+select.form-select.is-invalid {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
 ---- src/app/shared/components/dynamic-field/dynamic-field.component.html ----
-<div [ngClass]="'col-' + config().colSpan" [formGroup]="formGroup()">
+<div [formGroup]="formGroup()">
     @switch (config().type) {
     @case ('text') {
     <div class="form-group">
@@ -1586,11 +1821,10 @@ export class DynamicFieldComponent {
             <span class="text-danger">*</span>
             }
         </label>
-        <input type="text" [formControlName]="config().name" class="form-control" [id]="config().name"
-            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
-            (input)="onFieldChange()">
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+        <input type="text" [formControlName]="config().name" [ngClass]="inputClass()" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" (blur)="onBlur()" (input)="onFieldChange()">
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -1608,11 +1842,10 @@ export class DynamicFieldComponent {
             <span class="text-danger">*</span>
             }
         </label>
-        <input type="email" [formControlName]="config().name" class="form-control" [id]="config().name"
-            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
-            (input)="onFieldChange()">
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+        <input type="email" [formControlName]="config().name" [ngClass]="inputClass()" [id]="config().name"
+            [placeholder]="textConfig().placeholder || ''" (blur)="onBlur()" (input)="onFieldChange()">
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -1626,14 +1859,16 @@ export class DynamicFieldComponent {
     <div class="form-group">
         <label [for]="config().name">
             {{config().label}}
-            <span *ngIf="config().required" class="text-danger">*</span>
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
         </label>
-        <input type="number" [formControlName]="config().name" class="form-control" [id]="config().name"
-            [placeholder]="numberConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
-            [min]="numberConfig().min ?? null" [max]="numberConfig().max ?? null" [step]="numberConfig().step || 1"
+        <input type="number" [formControlName]="config().name" [ngClass]="inputClass()" [id]="config().name"
+            [placeholder]="numberConfig().placeholder || ''" [min]="numberConfig().min ?? null"
+            [max]="numberConfig().max ?? null" [step]="numberConfig().step || 1" (blur)="onBlur()"
             (input)="onFieldChange()">
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -1647,13 +1882,14 @@ export class DynamicFieldComponent {
     <div class="form-group">
         <label [for]="config().name">
             {{config().label}}
-            <span *ngIf="config().required" class="text-danger">*</span>
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
         </label>
-        <select [formControlName]="config().name" class="form-select" [id]="config().name"
-            [ngClass]="config().customClasses || ''" [multiple]="selectConfig().multiple" (change)="onFieldChange()">
+        <select [formControlName]="config().name" [ngClass]="inputClass()" [id]="config().name"
+            [multiple]="selectConfig().multiple" (blur)="onBlur()" (change)="onFieldChange()">
             <option value="">Seleccione...</option>
 
-            <!-- Con grupos de opciones -->
             @if (selectConfig().optionGroups && selectConfig().optionGroups?.length) {
             @for (group of selectConfig().optionGroups; track group.label) {
             <optgroup [label]="group.label">
@@ -1665,7 +1901,6 @@ export class DynamicFieldComponent {
             </optgroup>
             }
             }
-            <!-- Sin grupos de opciones -->
             @else {
             @for (option of selectConfig().options; track option.value) {
             <option [value]="option.value" [disabled]="option.disabled">
@@ -1674,8 +1909,8 @@ export class DynamicFieldComponent {
             }
             }
         </select>
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -1688,13 +1923,15 @@ export class DynamicFieldComponent {
     @case ('checkbox') {
     <div class="form-check mt-4">
         <input type="checkbox" [formControlName]="config().name" class="form-check-input" [id]="config().name"
-            [ngClass]="config().customClasses || ''" (change)="onFieldChange()">
+            [ngClass]="{'is-invalid': controlInvalid()}" (blur)="onBlur()" (change)="onFieldChange()">
         <label class="form-check-label" [for]="config().name">
             {{checkboxConfig().checkboxLabel || config().label}}
-            <span *ngIf="config().required" class="text-danger">*</span>
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
         </label>
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -1708,13 +1945,14 @@ export class DynamicFieldComponent {
     <div class="form-group">
         <label [for]="config().name">
             {{config().label}}
-            <span *ngIf="config().required" class="text-danger">*</span>
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
         </label>
-        <input type="date" [formControlName]="config().name" class="form-control" [id]="config().name"
-            [ngClass]="config().customClasses || ''" [min]="dateConfig().min" [max]="dateConfig().max"
-            (change)="onFieldChange()">
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+        <input type="date" [formControlName]="config().name" [ngClass]="inputClass()" [id]="config().name"
+            [min]="dateConfig().min" [max]="dateConfig().max" (blur)="onBlur()" (change)="onFieldChange()">
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -1728,14 +1966,15 @@ export class DynamicFieldComponent {
     <div class="form-group">
         <label [for]="config().name">
             {{config().label}}
-            <span *ngIf="config().required" class="text-danger">*</span>
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
         </label>
-        <textarea [formControlName]="config().name" class="form-control" [id]="config().name"
+        <textarea [formControlName]="config().name" [ngClass]="inputClass()" [id]="config().name"
             [rows]="textareaConfig().rows || 3" [placeholder]="textareaConfig().placeholder || ''"
-            [ngClass]="config().customClasses || ''" [maxlength]="textareaConfig().maxLength ?? null"
-            (input)="onFieldChange()"></textarea>
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+            [maxlength]="textareaConfig().maxLength ?? null" (blur)="onBlur()" (input)="onFieldChange()"></textarea>
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -1749,15 +1988,17 @@ export class DynamicFieldComponent {
     <div class="form-group">
         <label class="d-block">
             {{config().label}}
-            <span *ngIf="config().required" class="text-danger">*</span>
+            @if (config().required) {
+            <span class="text-danger">*</span>
+            }
         </label>
 
         <div class="radio-group" [ngClass]="{'radio-horizontal': radioConfig().layout === 'horizontal'}">
             @for (option of radioConfig().options; track option.value) {
             <div class="form-check">
                 <input type="radio" [formControlName]="config().name" class="form-check-input"
-                    [id]="config().name + '_' + option.value" [value]="option.value" [disabled]="!!option.disabled"
-                    (change)="onFieldChange()">
+                    [ngClass]="{'is-invalid': controlInvalid()}" [id]="config().name + '_' + option.value"
+                    [value]="option.value" [disabled]="!!option.disabled" (blur)="onBlur()" (change)="onFieldChange()">
                 <label class="form-check-label" [for]="config().name + '_' + option.value">
                     {{option.label}}
                 </label>
@@ -1765,28 +2006,8 @@ export class DynamicFieldComponent {
             }
         </div>
 
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
-            {{ errorText() }}
-        </div>
-        }
-        @if (config().hint) {
-        <small class="form-text text-muted">{{config().hint}}</small>
-        }
-    </div>
-    }
-
-    @case ('password') {
-    <div class="form-group">
-        <label [for]="config().name">
-            {{config().label}}
-            <span *ngIf="config().required" class="text-danger">*</span>
-        </label>
-        <input type="password" [formControlName]="config().name" class="form-control" [id]="config().name"
-            [placeholder]="textConfig().placeholder || ''" [ngClass]="config().customClasses || ''"
-            (input)="onFieldChange()">
-        @if (controlInvalid() && controlTouched()) {
-        <div class="text-danger mt-1 small">
+        @if (controlInvalid()) {
+        <div class="invalid-feedback d-block">
             {{ errorText() }}
         </div>
         }
@@ -2209,7 +2430,7 @@ export class DynamicTableComponent {
 }
 ---- src/app/shared/components/dynamic-form/dynamic-form.component.ts ----
 import { Component, computed, effect, inject, input, model, output, signal, OnInit } from '@angular/core';
-import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormGroup, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { PageFormConfig } from '../../models/form.models';
 import { ConditionService } from '../../services/condition.service';
 import { DynamicFormService } from '../../services/dynamic-form.service';
@@ -2250,33 +2471,36 @@ export class DynamicFormComponent implements OnInit {
   rowVisibility = signal<Record<string, boolean>>({});
   collapsedSections = signal<Set<string>>(new Set());
 
+  // Flag para prevenir recursión infinita
+  private isValidating = false;
+
   // Computed signals para valores derivados
   formValues = computed(() => this.form?.getRawValue() as Record<string, unknown>);
   formDirty = computed(() => this.form?.dirty || false);
   formTouched = computed(() => this.form?.touched || false);
-  submitDisabled = computed(() => !this.form?.valid);
-  showResetButton = computed(() => this.showReset() && this.formDirty());
 
   constructor() {
-    console.log('DynamicFormComponent constructor iniciado');
-
     // Aplicar datos iniciales cuando estén disponibles
     effect(() => {
       const data = this.initialData();
       if (data && this.form) {
-        console.log('Aplicando datos iniciales al formulario');
         this.updateFormValues(data);
         this.form.markAsPristine();
+      }
+    });
+
+    // Efecto para actualizar el estado de validación del formulario cuando cambian los valores
+    effect(() => {
+      if (this.form) {
+        this.formValid.set(this.form.valid);
       }
     });
   }
 
   ngOnInit(): void {
-    console.log('DynamicFormComponent ngOnInit');
     try {
       const formConfig = this.config();
       if (formConfig) {
-        console.log('Inicializando formulario en ngOnInit con config:', formConfig.id);
         this.initForm(formConfig);
 
         // Inicializar secciones colapsadas
@@ -2295,22 +2519,27 @@ export class DynamicFormComponent implements OnInit {
 
   // Inicializar el formulario con manejo de errores apropiado
   private initForm(config: PageFormConfig): void {
-    console.log('Iniciando creación completa del FormGroup');
     try {
       this.form = this.formService.createFormGroup(config);
-      this.formValid.set(this.form.valid);
 
       // Inicializar visibilidad
       const initialValues = this.form.getRawValue();
       this.updateVisibility(initialValues as Record<string, unknown>);
 
-      // Añadir suscripción a valueChanges
-      console.log('Configurando suscripción a valueChanges');
+      // Actualizar estado de validez inicial
+      this.formValid.set(this.form.valid);
+
+      // Añadir suscripción a valueChanges más robusta
       this.form.valueChanges.subscribe({
         next: (values) => {
           try {
             this.updateVisibility(values as Record<string, unknown>);
-            this.formValid.set(this.form.valid);
+
+            // Evitar la recursión infinita
+            if (!this.isValidating) {
+              this.formValid.set(this.form.valid);
+            }
+
             this.fieldChange.emit({
               field: '_formValues',
               value: values
@@ -2322,9 +2551,41 @@ export class DynamicFormComponent implements OnInit {
         error: (error) => console.error('Error en valueChanges:', error)
       });
 
-      console.log('Inicialización completa exitosa');
+      // Suscribirse también a statusChanges
+      this.form.statusChanges.subscribe(status => {
+        console.log('Cambio de estado del formulario:', status);
+        this.formValid.set(status === 'VALID');
+      });
     } catch (error) {
       console.error('Error en initForm completo:', error);
+    }
+  }
+
+  // Método para validar todos los campos del formulario
+  validateAllFormFields(): void {
+    if (!this.form || this.isValidating) return;
+
+    // Establecer flag para evitar recursión
+    this.isValidating = true;
+
+    try {
+      Object.keys(this.form.controls).forEach(field => {
+        const control = this.form.get(field);
+        if (control) {
+          control.markAsTouched();
+          control.markAsDirty();
+
+          // No usar updateValueAndValidity dentro del bucle
+          // porque dispara valueChanges que puede llamar a esta función de nuevo
+        }
+      });
+
+      // Actualizar la validez del formulario sin emitir eventos
+      this.form.updateValueAndValidity({ emitEvent: false });
+      this.formValid.set(this.form.valid);
+    } finally {
+      // Restablecer flag
+      this.isValidating = false;
     }
   }
 
@@ -2333,15 +2594,30 @@ export class DynamicFormComponent implements OnInit {
     if (!data) return;
 
     try {
+      // Establecer flag para evitar recursión
+      this.isValidating = true;
+
       // Actualizar los valores uno por uno para evitar problemas de tipo
       Object.keys(data).forEach(key => {
         const control = this.form.get(key);
         if (control) {
-          control.setValue(data[key]);
+          control.setValue(data[key], { emitEvent: false });
         }
       });
+
+      // IMPORTANTE: Trigger de actualización sin emitir eventos
+      this.form.updateValueAndValidity({ emitEvent: false });
+
+      // Actualizar visibilidad manualmente
+      this.updateVisibility(this.form.getRawValue());
+
+      // Actualizar estado de validez
+      this.formValid.set(this.form.valid);
     } catch (error) {
       console.error('Error al actualizar valores del formulario:', error);
+    } finally {
+      // Restablecer flag
+      this.isValidating = false;
     }
   }
 
@@ -2398,24 +2674,31 @@ export class DynamicFormComponent implements OnInit {
       // Actualizar la signal de visibilidad
       this.fieldVisibility.set(fieldsMap);
 
-      // Aplicar cambios de habilitar/deshabilitar en batch sin emitir eventos
-      // Esto evita el ciclo infinito de actualizaciones
-      if (controlChanges.length > 0) {
-        // Desactivar temporalmente las notificaciones de valueChanges
-        const subscription = this.form.valueChanges.subscribe();
-        subscription.unsubscribe();
+      // Establecer flag para evitar recursión
+      this.isValidating = true;
 
-        // Aplicar cambios
-        controlChanges.forEach(change => {
-          if (change.enable) {
-            change.control.enable({ emitEvent: false, onlySelf: true });
-          } else {
-            change.control.disable({ emitEvent: false, onlySelf: true });
-          }
-        });
+      try {
+        // Aplicar cambios de habilitar/deshabilitar en batch
+        if (controlChanges.length > 0) {
+          controlChanges.forEach(change => {
+            if (change.enable) {
+              if (change.control.disabled) {
+                change.control.enable({ emitEvent: false });
+              }
+            } else {
+              if (change.control.enabled) {
+                change.control.disable({ emitEvent: false });
+              }
+            }
+          });
 
-        // Actualizar el estado del formulario sin emitir evento
-        this.form.updateValueAndValidity({ emitEvent: false });
+          // Actualizar manualmente todo el formulario sin emitir eventos
+          this.form.updateValueAndValidity({ emitEvent: false });
+          this.formValid.set(this.form.valid);
+        }
+      } finally {
+        // Restablecer flag
+        this.isValidating = false;
       }
     } catch (error) {
       console.error('Error en updateVisibility:', error);
@@ -2452,41 +2735,66 @@ export class DynamicFormComponent implements OnInit {
   // Manejar envío del formulario
   onSubmit(): void {
     try {
-      if (this.form.valid) {
-        const formData = this.form.getRawValue();
+      console.log('onSubmit llamado, estado del formulario:', this.form.valid);
 
-        // Guardar en API si está configurado
-        if (this.saveOnSubmit()) {
-          const endpoint = this.config().apiEndpoints?.save;
-          if (endpoint) {
-            this.formService.submitForm(endpoint, formData).subscribe({
-              next: (response) => {
-                console.log('Datos guardados:', response);
-                this.formSubmit.emit(formData);
-                this.form.markAsPristine();
-              },
-              error: (error) => {
-                console.error('Error al guardar:', error);
-                // Aquí podrías manejar errores de validación del servidor
-              }
-            });
-          } else {
-            // Si no hay endpoint, solo emitir los datos
-            this.formSubmit.emit(formData);
-          }
+      // Si el formulario no es válido, marcar todos los campos como tocados para mostrar errores
+      if (!this.form.valid) {
+        this.markFieldsAsTouched();
+        return;
+      }
+
+      const formData = this.form.getRawValue();
+
+      // Guardar en API si está configurado
+      if (this.saveOnSubmit()) {
+        const endpoint = this.config().apiEndpoints?.save;
+        if (endpoint) {
+          this.formService.submitForm(endpoint, formData).subscribe({
+            next: (response) => {
+              this.formSubmit.emit(formData);
+              this.form.markAsPristine();
+            },
+            error: (error) => {
+              console.error('Error al guardar:', error);
+            }
+          });
         } else {
-          // Si no se debe guardar automáticamente, solo emitir los datos
+          // Si no hay endpoint, solo emitir los datos
           this.formSubmit.emit(formData);
         }
       } else {
-        // Marcar todos los campos como tocados para mostrar errores
-        Object.keys(this.form.controls).forEach(key => {
-          const control = this.form.get(key);
-          control?.markAsTouched();
-        });
+        // Si no se debe guardar automáticamente, solo emitir los datos
+        this.formSubmit.emit(formData);
       }
     } catch (error) {
       console.error('Error en onSubmit:', error);
+    }
+  }
+
+  // Método público para marcar campos como tocados (accesible desde template)
+  markFieldsAsTouched(): void {
+    if (!this.form) return;
+
+    // Establecer flag para evitar recursión
+    this.isValidating = true;
+
+    try {
+      Object.keys(this.form.controls).forEach(key => {
+        const control = this.form.get(key);
+        if (control) {
+          control.markAsTouched();
+          control.markAsDirty();
+        }
+      });
+
+      // Actualizar la validez del formulario sin emitir eventos
+      this.form.updateValueAndValidity({ emitEvent: false });
+
+      // Actualizar el modelo para reflejar cualquier cambio
+      this.formValid.set(this.form.valid);
+    } finally {
+      // Restablecer flag
+      this.isValidating = false;
     }
   }
 
@@ -2502,79 +2810,86 @@ export class DynamicFormComponent implements OnInit {
   // Manejar reset del formulario
   onReset(): void {
     try {
-      // Si hay datos iniciales, volver a ellos
-      if (this.initialData()) {
-        this.updateFormValues(this.initialData()!);
-      } else {
-        // Si no, resetear a valores por defecto
-        this.form.reset();
+      // Establecer flag para evitar recursión
+      this.isValidating = true;
+
+      try {
+        // Si hay datos iniciales, volver a ellos
+        if (this.initialData()) {
+          // Actualizar valores sin emitir eventos
+          Object.keys(this.initialData()!).forEach(key => {
+            const control = this.form.get(key);
+            if (control) {
+              control.setValue(this.initialData()![key], { emitEvent: false });
+            }
+          });
+        } else {
+          // Si no, resetear a valores por defecto sin emitir eventos
+          this.form.reset({}, { emitEvent: false });
+        }
+
+        this.form.markAsPristine();
+        this.form.updateValueAndValidity({ emitEvent: false });
+        this.formReset.emit();
+      } finally {
+        // Restablecer flag
+        this.isValidating = false;
       }
-      this.form.markAsPristine();
-      this.formReset.emit();
     } catch (error) {
       console.error('Error en onReset:', error);
     }
   }
 }
 ---- src/app/shared/components/dynamic-form/dynamic-form.component.html ----
-<ng-container *ngIf="form">
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        @if (config().title) {
-        <h2 class="mb-4">{{ config().title }}</h2>
-        }
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <h2 class="mb-4">{{ config().title }}</h2>
 
-        @for (section of config().sections; track section.id) {
-        @if (sectionVisibility()[section.id]) {
-        <div class="form-section mb-4" [id]="section.id">
-            @if (section.title) {
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3 class="section-title mb-0">{{ section.title }}</h3>
-                @if (section.collapsible) {
-                <button type="button" class="btn btn-sm btn-outline-secondary"
-                    (click)="toggleSectionCollapse(section.id)">
-                    {{ collapsedSections().has(section.id) ? 'Expandir' : 'Colapsar' }}
-                </button>
-                }
-            </div>
+    @for (section of config().sections; track section.id) {
+    @if (sectionVisibility()[section.id] !== false) {
+    <div class="form-section mb-4" [id]="section.id">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="section-title mb-0">{{ section.title }}</h3>
+            @if (section.collapsible) {
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="toggleSectionCollapse(section.id)">
+                {{ collapsedSections().has(section.id) ? 'Expandir' : 'Colapsar' }}
+            </button>
             }
+        </div>
 
-            @if (!collapsedSections().has(section.id)) {
-            @for (row of section.rows; track row.id) {
-            @if (rowVisibility()[row.id]) {
-            <div class="row mb-3" [id]="row.id">
-                @for (field of row.fields; track field.name) {
-                @if (fieldVisibility()[field.name]) {
-                <app-dynamic-field [config]="field" (fieldChange)="onFieldValueChange($event)">
-                </app-dynamic-field>
-                }
-                }
-            </div>
-            }
+        @if (!collapsedSections().has(section.id)) {
+        @for (row of section.rows; track row.id) {
+        @if (rowVisibility()[row.id] !== false) {
+        <div class="row mb-3" [id]="row.id">
+            @for (field of row.fields; track field.name) {
+            @if (fieldVisibility()[field.name] !== false) {
+            <app-dynamic-field [config]="field" (fieldChange)="onFieldValueChange($event)"
+                [ngClass]="'col-' + (field.colSpan || 12)">
+            </app-dynamic-field>
             }
             }
         </div>
         }
         }
+        }
+    </div>
+    }
+    }
 
-        <div class="form-actions mt-4 d-flex gap-2">
-            <button type="submit" class="btn btn-primary" [disabled]="submitDisabled()">
-                {{ submitButtonText() }}
-            </button>
-            <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">
-                Cancelar
-            </button>
-            @if (showResetButton()) {
-            <button type="button" class="btn btn-outline-danger" (click)="onReset()">
-                Restablecer
-            </button>
-            }
-        </div>
-    </form>
-</ng-container>
-
-<div *ngIf="!form" class="alert alert-warning">
-    Inicializando formulario...
-</div>
+    <!-- Acciones del formulario -->
+    <div class="form-actions mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary" [disabled]="!form.valid">
+            {{ submitButtonText() }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">
+            Cancelar
+        </button>
+        @if (showReset() && formDirty()) {
+        <button type="button" class="btn btn-outline-warning" (click)="onReset()">
+            Restablecer
+        </button>
+        }
+    </div>
+</form>
 ---- src/app/shared/components/dynamic-form/dynamic-form.component.scss ----
 .form-section {
   padding: 1.5rem;
@@ -2588,11 +2903,23 @@ export class DynamicFormComponent implements OnInit {
 
 ---- src/app/shared/services/dynamic-form.service.ts ----
 import { Injectable, inject, signal } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ValidatorFn, Validators, AbstractControl } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { PageFormConfig } from '../models/form.models';
 import { ConditionService } from './condition.service';
 import { FormDataService } from './form-data.service';
+
+// Validador personalizado para asegurar que la opción seleccionada no sea vacía
+function selectRequiredValidator(): ValidatorFn {
+    return (control: AbstractControl): { [key: string]: any } | null => {
+        const value = control.value;
+        if (value === '' || value === null || value === undefined ||
+            (typeof value === 'string' && value.startsWith('0:'))) {
+            return { 'required': true };
+        }
+        return null;
+    };
+}
 
 @Injectable({
     providedIn: 'root'
@@ -2617,19 +2944,42 @@ export class DynamicFormService {
             section.rows.forEach(row => {
                 row.fields.forEach(field => {
                     // Obtener los validadores para este campo
-                    const validators = this.conditionService.buildValidators(field);
+                    let validators = this.conditionService.buildValidators(field);
 
-                    // Crear el control con su valor por defecto
-                    controls[field.name] = new FormControl<unknown>(
-                        field.defaultValue ?? null,
+                    // Ajuste para valores por defecto
+                    let defaultValue = field.defaultValue ?? null;
+
+                    // Para campos de tipo select, tratamiento especial para la validación
+                    if (field.type === 'select') {
+                        // En selects requeridos, usar empty string y agregar validador personalizado
+                        defaultValue = '';
+
+                        // Si es requerido, agregar nuestro validador personalizado para selects
+                        if (field.required) {
+                            validators = [...validators, selectRequiredValidator()];
+                        }
+                    }
+
+                    // Crear el control
+                    const control = new FormControl<unknown>(
+                        defaultValue,
                         validators
                     );
+
+                    controls[field.name] = control;
                 });
             });
         });
 
-        // Crear el FormGroup
-        return this.fb.nonNullable.group(controls);
+        // Crear y devolver el FormGroup
+        const formGroup = this.fb.group(controls);
+
+        // Forzar una validación completa del formulario
+        setTimeout(() => {
+            formGroup.updateValueAndValidity();
+        }, 0);
+
+        return formGroup;
     }
 
     /**
@@ -2728,10 +3078,45 @@ export class FormRegistryService {
     }
 }
 ---- src/app/shared/services/condition.service.ts ----
-
 import { Injectable } from '@angular/core';
-import { ValidatorFn, Validators } from '@angular/forms';
+import { ValidatorFn, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { DisplayCondition, FieldConfig, FieldValidator, NumberFieldConfig, PageFormConfig, TextareaFieldConfig, TextFieldConfig } from '../models/form.models';
+
+/**
+ * Validador personalizado para campos select requeridos
+ */
+export function strictRequiredValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+        // Verificar valores null/undefined
+        if (control.value === null || control.value === undefined) {
+            return { 'required': true };
+        }
+
+        // Verificar string vacío
+        if (typeof control.value === 'string' && control.value.trim() === '') {
+            return { 'required': true };
+        }
+
+        // Verificar array vacío
+        if (Array.isArray(control.value) && control.value.length === 0) {
+            return { 'required': true };
+        }
+
+        // Verificar formato especial de Angular para selects (0: '')
+        if (typeof control.value === 'string' && control.value.startsWith('0:')) {
+            return { 'required': true };
+        }
+
+        // Valor array con un elemento vacío ['']
+        if (Array.isArray(control.value) &&
+            control.value.length === 1 &&
+            (control.value[0] === '' || control.value[0] === null || control.value[0] === undefined)) {
+            return { 'required': true };
+        }
+
+        return null;
+    };
+}
 
 @Injectable({
     providedIn: 'root'
@@ -2751,7 +3136,7 @@ export class ConditionService {
     }
 
     /**
-     * Evalúa una condición individual
+     * Evalúa una condición individual con manejo mejorado para valores nulos y undefined
      */
     private evaluateCondition(condition: DisplayCondition, formValues: Record<string, unknown>): boolean {
         // Si el campo fuente no existe en los valores, la condición falla
@@ -2759,27 +3144,70 @@ export class ConditionService {
             return false;
         }
 
-        const sourceValue = formValues[condition.sourceField];
+        let sourceValue = formValues[condition.sourceField];
+
+        // Manejo especial para arrays con un solo elemento
+        if (Array.isArray(sourceValue) && sourceValue.length === 1) {
+            sourceValue = sourceValue[0];
+        }
+
+        // Tratar string vacío como null para comparaciones más consistentes
+        if (sourceValue === '') {
+            sourceValue = null;
+        }
+
+        // Manejo especial para valores en formato Angular select (0: '')
+        if (typeof sourceValue === 'string' && sourceValue.startsWith('0:')) {
+            if (sourceValue.length > 3) {
+                // Extraer el valor real después del prefijo
+                const extractedValue = sourceValue.substring(3).trim();
+                // Eliminar comillas si las hay
+                if (extractedValue.startsWith("'") && extractedValue.endsWith("'")) {
+                    sourceValue = extractedValue.substring(1, extractedValue.length - 1);
+                } else {
+                    sourceValue = extractedValue;
+                }
+            } else {
+                sourceValue = '';
+            }
+        }
 
         switch (condition.operator) {
             case 'equals':
-                return sourceValue === condition.value;
+                return this.compareValues(sourceValue, condition.value);
 
             case 'notEquals':
-                return sourceValue !== condition.value;
+                return !this.compareValues(sourceValue, condition.value);
 
             case 'contains': {
                 if (typeof sourceValue === 'string') {
                     return sourceValue.includes(String(condition.value || ''));
                 } else if (Array.isArray(sourceValue)) {
-                    return sourceValue.includes(condition.value as never);
+                    // Para arrays, verificar si algún elemento coincide
+                    if (sourceValue.length === 0) return false;
+                    return sourceValue.some(val => this.compareValues(val, condition.value));
                 }
                 return false;
             }
 
             case 'in': {
-                // Aquí condition.value debe ser un array
-                return Array.isArray(condition.value) && condition.value.includes(sourceValue as never);
+                // Si condition.value es un array, verificamos si sourceValue está en él
+                if (Array.isArray(condition.value)) {
+                    // Si sourceValue también es un array
+                    if (Array.isArray(sourceValue)) {
+                        // Verificar si hay algún valor de sourceValue que esté en condition.value
+                        return sourceValue.some(value =>
+                            Array.isArray(condition.value) && condition.value.some(condVal =>
+                                this.compareValues(value, condVal)
+                            )
+                        );
+                    }
+                    // Si sourceValue es un valor simple
+                    return Array.isArray(condition.value) && condition.value.some(condVal =>
+                        this.compareValues(sourceValue, condVal)
+                    );
+                }
+                return false;
             }
 
             case 'greaterThan': {
@@ -2809,6 +3237,40 @@ export class ConditionService {
     }
 
     /**
+     * Compara dos valores con manejo de tipos específicos
+     */
+    private compareValues(value1: unknown, value2: unknown): boolean {
+        // Tratar valores nulos
+        if (value1 === null || value1 === undefined) {
+            return value2 === null || value2 === undefined;
+        }
+
+        // Comparación para boolean
+        if (typeof value1 === 'boolean') {
+            if (typeof value2 === 'string') {
+                return value1 === (value2.toLowerCase() === 'true');
+            }
+            return value1 === value2;
+        }
+
+        // Comparación para strings
+        if (typeof value1 === 'string') {
+            if (typeof value2 === 'string') {
+                return value1.toLowerCase() === value2.toLowerCase();
+            }
+            return String(value1) === String(value2);
+        }
+
+        // Comparación para números
+        if (typeof value1 === 'number') {
+            return value1 === Number(value2);
+        }
+
+        // Comparación general
+        return value1 === value2;
+    }
+
+    /**
      * Actualiza la visibilidad de todos los campos en el formulario
      */
     updateFieldVisibility(config: PageFormConfig, formValues: Record<string, unknown>): Record<string, boolean> {
@@ -2834,25 +3296,29 @@ export class ConditionService {
     }
 
     /**
-     * Construye validadores basados en la configuración del campo
+     * Construye validadores basados en la configuración del campo con manejo mejorado para campos requeridos
      */
     buildValidators(field: FieldConfig): ValidatorFn[] {
         const validators: ValidatorFn[] = [];
 
-        // Validador required
+        // Validador required con manejo especial para selects
         if (field.required) {
-            validators.push(Validators.required);
+            if (field.type === 'select') {
+                validators.push(strictRequiredValidator());
+            } else {
+                validators.push(Validators.required);
+            }
         }
 
         // Validadores adicionales según el tipo de campo
         if (field.type === 'text' || field.type === 'email' || field.type === 'password' || field.type === 'textarea') {
             const textField = field as TextFieldConfig | TextareaFieldConfig;
 
-            if (textField.minLength) {
+            if ('minLength' in textField && textField.minLength) {
                 validators.push(Validators.minLength(textField.minLength));
             }
 
-            if (textField.maxLength) {
+            if ('maxLength' in textField && textField.maxLength) {
                 validators.push(Validators.maxLength(textField.maxLength));
             }
 
@@ -2880,30 +3346,40 @@ export class ConditionService {
         // Validadores personalizados
         if (field.validators && field.validators.length > 0) {
             field.validators.forEach(validator => {
-                switch (validator.type) {
-                    case 'min':
-                        validators.push(Validators.min(validator.value as number));
-                        break;
-                    case 'max':
-                        validators.push(Validators.max(validator.value as number));
-                        break;
-                    case 'minLength':
-                        validators.push(Validators.minLength(validator.value as number));
-                        break;
-                    case 'maxLength':
-                        validators.push(Validators.maxLength(validator.value as number));
-                        break;
-                    case 'email':
-                        validators.push(Validators.email);
-                        break;
-                    case 'pattern':
-                        validators.push(Validators.pattern(validator.value as string));
-                        break;
-                }
+                this.addCustomValidator(validators, validator);
             });
         }
 
         return validators;
+    }
+
+    /**
+     * Agrega un validador personalizado al array de validadores
+     */
+    private addCustomValidator(validators: ValidatorFn[], validator: FieldValidator): void {
+        switch (validator.type) {
+            case 'required':
+                validators.push(Validators.required);
+                break;
+            case 'min':
+                validators.push(Validators.min(validator.value as number));
+                break;
+            case 'max':
+                validators.push(Validators.max(validator.value as number));
+                break;
+            case 'minLength':
+                validators.push(Validators.minLength(validator.value as number));
+                break;
+            case 'maxLength':
+                validators.push(Validators.maxLength(validator.value as number));
+                break;
+            case 'email':
+                validators.push(Validators.email);
+                break;
+            case 'pattern':
+                validators.push(Validators.pattern(validator.value as string));
+                break;
+        }
     }
 }
 ---- src/app/shared/services/form-data.service.ts ----
@@ -3049,7 +3525,7 @@ export const httpMockInterceptor: HttpInterceptorFn = (req, next) => {
 
   // Interceptar búsqueda de empleados
   if (req.url.includes('/api/employees/search')) {
-    console.log('Interceptando búsqueda de empleados');
+
     return of(new HttpResponse({
       status: 200,
       body: {
@@ -3063,7 +3539,7 @@ export const httpMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   // Interceptar búsqueda de tiendas
   else if (req.url.includes('/api/stores/search')) {
-    console.log('Interceptando búsqueda de tiendas');
+
     return of(new HttpResponse({
       status: 200,
       body: {
@@ -3078,7 +3554,7 @@ export const httpMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   // Otras operaciones de tiendas
   else if (req.url.includes('/api/stores')) {
-    console.log('Interceptando operación de tiendas');
+
     return of(new HttpResponse({
       status: 200,
       body: {}
@@ -3086,7 +3562,7 @@ export const httpMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   // Otras operaciones de empleados
   else if (req.url.includes('/api/employees')) {
-    console.log('Interceptando operación de empleados');
+
     return of(new HttpResponse({
       status: 200,
       body: {}

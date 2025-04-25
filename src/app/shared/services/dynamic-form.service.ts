@@ -1,9 +1,21 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ValidatorFn, Validators, AbstractControl } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { PageFormConfig } from '../models/form.models';
 import { ConditionService } from './condition.service';
 import { FormDataService } from './form-data.service';
+
+// Validador personalizado para asegurar que la opción seleccionada no sea vacía
+function selectRequiredValidator(): ValidatorFn {
+    return (control: AbstractControl): { [key: string]: any } | null => {
+        const value = control.value;
+        if (value === '' || value === null || value === undefined ||
+            (typeof value === 'string' && value.startsWith('0:'))) {
+            return { 'required': true };
+        }
+        return null;
+    };
+}
 
 @Injectable({
     providedIn: 'root'
@@ -28,19 +40,42 @@ export class DynamicFormService {
             section.rows.forEach(row => {
                 row.fields.forEach(field => {
                     // Obtener los validadores para este campo
-                    const validators = this.conditionService.buildValidators(field);
+                    let validators = this.conditionService.buildValidators(field);
 
-                    // Crear el control con su valor por defecto
-                    controls[field.name] = new FormControl<unknown>(
-                        field.defaultValue ?? null,
+                    // Ajuste para valores por defecto
+                    let defaultValue = field.defaultValue ?? null;
+
+                    // Para campos de tipo select, tratamiento especial para la validación
+                    if (field.type === 'select') {
+                        // En selects requeridos, usar empty string y agregar validador personalizado
+                        defaultValue = '';
+
+                        // Si es requerido, agregar nuestro validador personalizado para selects
+                        if (field.required) {
+                            validators = [...validators, selectRequiredValidator()];
+                        }
+                    }
+
+                    // Crear el control
+                    const control = new FormControl<unknown>(
+                        defaultValue,
                         validators
                     );
+
+                    controls[field.name] = control;
                 });
             });
         });
 
-        // Crear el FormGroup
-        return this.fb.nonNullable.group(controls);
+        // Crear y devolver el FormGroup
+        const formGroup = this.fb.group(controls);
+
+        // Forzar una validación completa del formulario
+        setTimeout(() => {
+            formGroup.updateValueAndValidity();
+        }, 0);
+
+        return formGroup;
     }
 
     /**

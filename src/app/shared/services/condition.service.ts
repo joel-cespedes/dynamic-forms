@@ -1,30 +1,48 @@
-
 import { Injectable } from '@angular/core';
-import { ValidatorFn, Validators } from '@angular/forms';
+import { ValidatorFn, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { DisplayCondition, FieldConfig, FieldValidator, NumberFieldConfig, PageFormConfig, TextareaFieldConfig, TextFieldConfig } from '../models/form.models';
+
+export function strictRequiredValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+        if (control.value === null || control.value === undefined) {
+            return { 'required': true };
+        }
+
+        if (typeof control.value === 'string' && control.value.trim() === '') {
+            return { 'required': true };
+        }
+
+        if (Array.isArray(control.value) && control.value.length === 0) {
+            return { 'required': true };
+        }
+
+        if (typeof control.value === 'string' && control.value.startsWith('0:')) {
+            return { 'required': true };
+        }
+
+        if (Array.isArray(control.value) &&
+            control.value.length === 1 &&
+            (control.value[0] === '' || control.value[0] === null || control.value[0] === undefined)) {
+            return { 'required': true };
+        }
+
+        return null;
+    };
+}
 
 @Injectable({
     providedIn: 'root'
 })
 export class ConditionService {
-    /**
-     * Evalúa si un elemento debe mostrarse según sus condiciones
-     */
     shouldDisplay(conditions: DisplayCondition[] | undefined, formValues: Record<string, unknown>): boolean {
-        // Si no hay condiciones, se muestra siempre
         if (!conditions || conditions.length === 0) {
             return true;
         }
 
-        // Debe cumplirse todas las condiciones (AND lógico)
         return conditions.every(condition => this.evaluateCondition(condition, formValues));
     }
 
-    /**
-     * Evalúa una condición individual
-     */
     private evaluateCondition(condition: DisplayCondition, formValues: Record<string, unknown>): boolean {
-        // Si el campo fuente no existe en los valores, la condición falla
         if (!(condition.sourceField in formValues)) {
             return false;
         }
@@ -34,34 +52,53 @@ export class ConditionService {
         if (Array.isArray(sourceValue) && sourceValue.length === 1) {
             sourceValue = sourceValue[0];
         }
+
+        if (sourceValue === '') {
+            sourceValue = null;
+        }
+
+        if (typeof sourceValue === 'string' && sourceValue.startsWith('0:')) {
+            if (sourceValue.length > 3) {
+                const extractedValue = sourceValue.substring(3).trim();
+                if (extractedValue.startsWith("'") && extractedValue.endsWith("'")) {
+                    sourceValue = extractedValue.substring(1, extractedValue.length - 1);
+                } else {
+                    sourceValue = extractedValue;
+                }
+            } else {
+                sourceValue = '';
+            }
+        }
+
         switch (condition.operator) {
             case 'equals':
-                return sourceValue === condition.value;
+                return this.compareValues(sourceValue, condition.value);
 
             case 'notEquals':
-                return sourceValue !== condition.value;
+                return !this.compareValues(sourceValue, condition.value);
 
             case 'contains': {
                 if (typeof sourceValue === 'string') {
                     return sourceValue.includes(String(condition.value || ''));
                 } else if (Array.isArray(sourceValue)) {
-                    return sourceValue.includes(condition.value as never);
+                    if (sourceValue.length === 0) return false;
+                    return sourceValue.some(val => this.compareValues(val, condition.value));
                 }
                 return false;
             }
 
             case 'in': {
-                // Si condition.value es un array, verificamos si sourceValue está en él
                 if (Array.isArray(condition.value)) {
-                    // Si sourceValue también es un array
                     if (Array.isArray(sourceValue)) {
-                        // Verificar si hay algún valor de sourceValue que esté en condition.value
                         return sourceValue.some(value =>
-                            Array.isArray(condition.value) && condition.value.includes(value as any)
+                            Array.isArray(condition.value) && condition.value.some(condVal =>
+                                this.compareValues(value, condVal)
+                            )
                         );
                     }
-                    // Si sourceValue es un valor simple
-                    return Array.isArray(condition.value) && condition.value.includes(sourceValue as any);
+                    return Array.isArray(condition.value) && condition.value.some(condVal =>
+                        this.compareValues(sourceValue, condVal)
+                    );
                 }
                 return false;
             }
@@ -92,23 +129,42 @@ export class ConditionService {
         }
     }
 
-    /**
-     * Actualiza la visibilidad de todos los campos en el formulario
-     */
+    private compareValues(value1: unknown, value2: unknown): boolean {
+        if (value1 === null || value1 === undefined) {
+            return value2 === null || value2 === undefined;
+        }
+
+        if (typeof value1 === 'boolean') {
+            if (typeof value2 === 'string') {
+                return value1 === (value2.toLowerCase() === 'true');
+            }
+            return value1 === value2;
+        }
+
+        if (typeof value1 === 'string') {
+            if (typeof value2 === 'string') {
+                return value1.toLowerCase() === value2.toLowerCase();
+            }
+            return String(value1) === String(value2);
+        }
+
+        if (typeof value1 === 'number') {
+            return value1 === Number(value2);
+        }
+
+        return value1 === value2;
+    }
+
     updateFieldVisibility(config: PageFormConfig, formValues: Record<string, unknown>): Record<string, boolean> {
         const fieldVisibility: Record<string, boolean> = {};
 
-        // Iteramos por cada sección, fila y campo
         config.sections.forEach(section => {
-            // Primero verificamos si la sección es visible
             const isSectionVisible = this.shouldDisplay(section.visibleWhen, formValues);
 
             section.rows.forEach(row => {
-                // Verificamos si la fila es visible (solo si la sección también lo es)
                 const isRowVisible = isSectionVisible && this.shouldDisplay(row.visibleWhen, formValues);
 
                 row.fields.forEach(field => {
-                    // Un campo es visible si la sección y fila son visibles, y además cumple sus propias condiciones
                     fieldVisibility[field.name] = isRowVisible && this.shouldDisplay(field.visibleWhen, formValues);
                 });
             });
@@ -117,26 +173,25 @@ export class ConditionService {
         return fieldVisibility;
     }
 
-    /**
-     * Construye validadores basados en la configuración del campo
-     */
     buildValidators(field: FieldConfig): ValidatorFn[] {
         const validators: ValidatorFn[] = [];
 
-        // Validador required
         if (field.required) {
-            validators.push(Validators.required);
+            if (field.type === 'select') {
+                validators.push(strictRequiredValidator());
+            } else {
+                validators.push(Validators.required);
+            }
         }
 
-        // Validadores adicionales según el tipo de campo
         if (field.type === 'text' || field.type === 'email' || field.type === 'password' || field.type === 'textarea') {
             const textField = field as TextFieldConfig | TextareaFieldConfig;
 
-            if (textField.minLength) {
+            if ('minLength' in textField && textField.minLength) {
                 validators.push(Validators.minLength(textField.minLength));
             }
 
-            if (textField.maxLength) {
+            if ('maxLength' in textField && textField.maxLength) {
                 validators.push(Validators.maxLength(textField.maxLength));
             }
 
@@ -161,32 +216,38 @@ export class ConditionService {
             }
         }
 
-        // Validadores personalizados
         if (field.validators && field.validators.length > 0) {
             field.validators.forEach(validator => {
-                switch (validator.type) {
-                    case 'min':
-                        validators.push(Validators.min(validator.value as number));
-                        break;
-                    case 'max':
-                        validators.push(Validators.max(validator.value as number));
-                        break;
-                    case 'minLength':
-                        validators.push(Validators.minLength(validator.value as number));
-                        break;
-                    case 'maxLength':
-                        validators.push(Validators.maxLength(validator.value as number));
-                        break;
-                    case 'email':
-                        validators.push(Validators.email);
-                        break;
-                    case 'pattern':
-                        validators.push(Validators.pattern(validator.value as string));
-                        break;
-                }
+                this.addCustomValidator(validators, validator);
             });
         }
 
         return validators;
+    }
+
+    private addCustomValidator(validators: ValidatorFn[], validator: FieldValidator): void {
+        switch (validator.type) {
+            case 'required':
+                validators.push(Validators.required);
+                break;
+            case 'min':
+                validators.push(Validators.min(validator.value as number));
+                break;
+            case 'max':
+                validators.push(Validators.max(validator.value as number));
+                break;
+            case 'minLength':
+                validators.push(Validators.minLength(validator.value as number));
+                break;
+            case 'maxLength':
+                validators.push(Validators.maxLength(validator.value as number));
+                break;
+            case 'email':
+                validators.push(Validators.email);
+                break;
+            case 'pattern':
+                validators.push(Validators.pattern(validator.value as string));
+                break;
+        }
     }
 }

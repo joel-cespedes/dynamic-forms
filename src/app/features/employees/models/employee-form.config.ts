@@ -18,7 +18,7 @@ export const EMPLOYEE_FORM_CONFIG: PageFormConfig = {
                             type: 'text',
                             label: 'Nombre',
                             required: true,
-                            colSpan: 6,
+                            colSpan: 4,
                             placeholder: 'Ingrese nombre',
                             validators: [
                                 { type: 'minLength', value: 2, message: 'El nombre debe tener al menos 2 caracteres' },
@@ -30,12 +30,26 @@ export const EMPLOYEE_FORM_CONFIG: PageFormConfig = {
                             type: 'text',
                             label: 'Apellido',
                             required: true,
-                            colSpan: 6,
+                            colSpan: 4,
                             placeholder: 'Ingrese apellido',
                             validators: [
                                 { type: 'minLength', value: 2 },
                                 { type: 'maxLength', value: 50 }
                             ]
+                        },
+                        {
+                            name: 'gender',
+                            type: 'radio',
+                            label: 'Género',
+                            required: true,
+                            colSpan: 4,
+                            layout: 'horizontal', // Puedes usar 'horizontal' o 'vertical'
+                            options: [
+                                { value: 'male', label: 'Masculino' },
+                                { value: 'female', label: 'Femenino' },
+                                { value: 'other', label: 'Otro' }
+                            ],
+                            defaultValue: 'male' // Valor seleccionado por defecto
                         }
                     ]
                 },
@@ -47,7 +61,7 @@ export const EMPLOYEE_FORM_CONFIG: PageFormConfig = {
                             type: 'select',
                             label: 'Tipo de Empleado',
                             required: true,
-                            colSpan: 4,
+                            colSpan: 3,
                             options: [
                                 { value: 'fullTime', label: 'Tiempo Completo' },
                                 { value: 'partTime', label: 'Tiempo Parcial' },
@@ -59,7 +73,7 @@ export const EMPLOYEE_FORM_CONFIG: PageFormConfig = {
                             type: 'select',
                             label: 'Departamento',
                             required: true,
-                            colSpan: 4,
+                            colSpan: 3,
                             options: [
                                 { value: 'it', label: 'IT' },
                                 { value: 'hr', label: 'Recursos Humanos' },
@@ -73,7 +87,17 @@ export const EMPLOYEE_FORM_CONFIG: PageFormConfig = {
                             type: 'date',
                             label: 'Fecha de Contratación',
                             required: true,
-                            colSpan: 4
+                            colSpan: 3
+                        },
+                        {
+                            name: 'isActive',
+                            type: 'checkbox',
+                            label: 'Estado', // Etiqueta que aparece en el formulario
+                            checkboxLabel: 'Usuario activo', // Texto que aparece junto al checkbox
+                            required: false,
+                            colSpan: 3,
+                            defaultValue: true, // Valor por defecto (marcado o no)
+                            hint: 'Indica si el usuario está activo en el sistema' // Texto de ayuda opcional
                         }
                     ]
                 }

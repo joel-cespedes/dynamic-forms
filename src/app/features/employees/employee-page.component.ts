@@ -39,7 +39,6 @@ export class EmployeePageComponent {
 
   ngOnInit() {
     const url = this.tableDataUrl();
-    console.log('URL para cargar datos:', url);
 
     if (url) {
       this.dataService.searchTableData(url, {}).subscribe({
@@ -107,7 +106,7 @@ export class EmployeePageComponent {
 
   // Manejar cambio en campos del formulario
   onFieldChange(event: { field: string, value: unknown }): void {
-    console.log('Campo cambiado:', event);
+
   }
 
   // Manejar acción de tabla
